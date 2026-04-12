@@ -2,18 +2,23 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import time
+import requests
 from ta.momentum import RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange
+from textblob import TextBlob
 
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING TERMINAL — 9:30 AM SIGNAL ENGINE")
+st.title("🚀 AI TRADING TERMINAL — MARKET SENTIMENT ENGINE")
 
-# ================= STOCK LIST =================
+# ================= STOCK UNIVERSE =================
 ALL_STOCKS = [
-    "RELIANCE.NS","SBIN.NS","ICICIBANK.NS",
-    "TATASTEEL.NS","INFY.NS","HDFCBANK.NS",
-    "LT.NS","AXISBANK.NS","ITC.NS","ONGC.NS"
+    "RELIANCE.NS","SBIN.NS","ICICIBANK.NS","HDFCBANK.NS",
+    "AXISBANK.NS","KOTAKBANK.NS","INFY.NS","TCS.NS",
+    "WIPRO.NS","LT.NS","TATASTEEL.NS","HINDALCO.NS",
+    "JSWSTEEL.NS","ONGC.NS","BPCL.NS","ITC.NS",
+    "BHARTIARTL.NS","ADANIENT.NS","ADANIPORTS.NS",
+    "POWERGRID.NS","NTPC.NS","ULTRACEMCO.NS"
 ]
 
 # ================= DATA =================
@@ -49,77 +54,96 @@ def load_data(stock):
 
     return None
 
-# ================= LOGIC =================
+# ================= NEWS SENTIMENT =================
+def get_news_sentiment(stock):
+    try:
+        name = stock.replace(".NS", "")
+        url = f"https://news.google.com/rss/search?q={name}+stock"
 
-def calculate_score(df):
+        r = requests.get(url, timeout=5)
+        text = r.text[:2000]
+
+        sentiment = TextBlob(text).sentiment.polarity
+
+        return round(sentiment * 10, 2)  # scale
+    except:
+        return 0
+
+# ================= SENTIMENT SCORE =================
+def sentiment_score(df, news_score):
+
     if df is None or len(df) < 50:
         return 0
 
     l = df.iloc[-1]
     score = 0
 
+    # Trend
     if l["MA20"] > l["MA50"] > l["MA200"]:
         score += 3
 
+    # Momentum
     if 50 < l["RSI"] < 70:
         score += 2
 
+    if df["RSI"].iloc[-1] > df["RSI"].iloc[-5]:
+        score += 1
+
+    # Volume
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         score += 2
 
-    return score
+    # Breakout
+    prev_high = df["High"].rolling(5).max().iloc[-2]
+    if l["Close"] > prev_high:
+        score += 2
 
+    # 🔥 NEWS IMPACT
+    score += news_score
 
-def breakout(df):
-    try:
-        prev_high = df["High"].rolling(5).max().iloc[-2]
-        return df["Close"].iloc[-1] > prev_high
-    except:
-        return False
+    return round(score, 2)
 
-
+# ================= TRADE PLAN =================
 def trade_plan(df):
     l = df.iloc[-1]
 
     entry = round(l["Close"], 2)
-
-    # ATR based SL
     sl = round(entry - (1.5 * l["ATR"]), 2)
 
     risk = entry - sl
-    target = round(entry + (risk * 2), 2)
+    target = round(entry + risk * 2, 2)
 
     return entry, sl, target
 
-
+# ================= MAIN ENGINE =================
 def generate_signals():
 
     results = []
 
     for stock in ALL_STOCKS:
 
-        st.write(f"📡 Fetching {stock}")
+        st.write(f"📡 {stock}")
 
         df = load_data(stock)
 
         if df is None or df.empty:
             continue
 
-        score = calculate_score(df)
+        news = get_news_sentiment(stock)
+
+        score = sentiment_score(df, news)
 
         if score < 6:
             continue
-
-        b = breakout(df)
 
         entry, sl, target = trade_plan(df)
         price = round(df["Close"].iloc[-1], 2)
 
         results.append({
             "Stock": stock,
+            "Sentiment Score": score,
+            "News": news,
             "Price": price,
-            "Score": score,
-            "Breakout": b,
             "Entry": entry,
             "Stop Loss": sl,
             "Target": target
@@ -128,31 +152,30 @@ def generate_signals():
     df_out = pd.DataFrame(results)
 
     if not df_out.empty:
-        df_out = df_out.sort_values("Score", ascending=False).head(5)
+        df_out = df_out.sort_values("Sentiment Score", ascending=False).head(10)
 
     return df_out
 
 # ================= UI =================
-
-run = st.button("▶ Generate 9:30 Signals")
+run = st.button("▶ Generate Top 10 Trades")
 
 if run:
 
-    signals = generate_signals()
+    df_signals = generate_signals()
 
-    if signals.empty:
-        st.warning("❌ No strong trades today")
+    if df_signals.empty:
+        st.warning("No strong sentiment today")
     else:
-        st.subheader("🚀 TOP 5 TRADES (9:30 AM PLAN)")
-        st.dataframe(signals, use_container_width=True)
+        st.subheader("🔥 TOP 10 MARKET SENTIMENT TRADES")
+        st.dataframe(df_signals, use_container_width=True)
 
-        st.success("✅ Trade Setup Ready")
+        st.success("✅ Ready for Trading")
 
         st.markdown("""
         ### 📌 HOW TO TRADE
 
-        ✅ Buy only if price crosses Entry with volume  
-        🔴 Stop Loss is mandatory  
-        🎯 Exit at Target or same day close  
-        ⛔ Avoid if market is weak
+        🟢 Enter only on breakout with volume  
+        🔴 Always use stop-loss  
+        🎯 Exit at target or same day  
+        ⚠️ Avoid overtrading (pick best 3–5)
         """)
