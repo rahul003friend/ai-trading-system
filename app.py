@@ -9,17 +9,21 @@ from ta.volatility import AverageTrueRange
 from textblob import TextBlob
 
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING TERMINAL — MARKET SENTIMENT ENGINE")
+st.title("🚀 AI TRADING TERMINAL — SMART MONEY TRACKER")
 
 # ================= STOCK UNIVERSE =================
-ALL_STOCKS = [
-    "RELIANCE.NS","SBIN.NS","ICICIBANK.NS","HDFCBANK.NS",
-    "AXISBANK.NS","KOTAKBANK.NS","INFY.NS","TCS.NS",
-    "WIPRO.NS","LT.NS","TATASTEEL.NS","HINDALCO.NS",
-    "JSWSTEEL.NS","ONGC.NS","BPCL.NS","ITC.NS",
-    "BHARTIARTL.NS","ADANIENT.NS","ADANIPORTS.NS",
-    "POWERGRID.NS","NTPC.NS","ULTRACEMCO.NS"
-]
+ALL_STOCKS = {
+    "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY","BPCL.NS":"ENERGY",
+    "SBIN.NS":"BANK","ICICIBANK.NS":"BANK","HDFCBANK.NS":"BANK",
+    "AXISBANK.NS":"BANK","KOTAKBANK.NS":"BANK",
+    "INFY.NS":"IT","TCS.NS":"IT","WIPRO.NS":"IT",
+    "LT.NS":"INFRA","ULTRACEMCO.NS":"INFRA",
+    "TATASTEEL.NS":"METAL","HINDALCO.NS":"METAL","JSWSTEEL.NS":"METAL",
+    "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG",
+    "BHARTIARTL.NS":"TELECOM",
+    "ADANIENT.NS":"ADANI","ADANIPORTS.NS":"ADANI",
+    "POWERGRID.NS":"POWER","NTPC.NS":"POWER"
+}
 
 # ================= DATA =================
 @st.cache_data(ttl=300)
@@ -48,62 +52,52 @@ def load_data(stock):
             df["ATR"] = atr.average_true_range()
 
             return df
-
         except:
             time.sleep(1)
 
     return None
 
-# ================= NEWS SENTIMENT =================
-def get_news_sentiment(stock):
+# ================= NEWS =================
+def news_sentiment(stock):
     try:
-        name = stock.replace(".NS", "")
+        name = stock.replace(".NS","")
         url = f"https://news.google.com/rss/search?q={name}+stock"
-
         r = requests.get(url, timeout=5)
-        text = r.text[:2000]
-
-        sentiment = TextBlob(text).sentiment.polarity
-
-        return round(sentiment * 10, 2)  # scale
+        text = r.text[:1500]
+        return TextBlob(text).sentiment.polarity * 10
     except:
         return 0
 
-# ================= SENTIMENT SCORE =================
-def sentiment_score(df, news_score):
+# ================= SCORE =================
+def score(df, news):
 
     if df is None or len(df) < 50:
         return 0
 
     l = df.iloc[-1]
-    score = 0
+    s = 0
 
-    # Trend
     if l["MA20"] > l["MA50"] > l["MA200"]:
-        score += 3
+        s += 3
 
-    # Momentum
     if 50 < l["RSI"] < 70:
-        score += 2
+        s += 2
 
     if df["RSI"].iloc[-1] > df["RSI"].iloc[-5]:
-        score += 1
+        s += 1
 
-    # Volume
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
-        score += 2
+        s += 2
 
-    # Breakout
     prev_high = df["High"].rolling(5).max().iloc[-2]
     if l["Close"] > prev_high:
-        score += 2
+        s += 2
 
-    # 🔥 NEWS IMPACT
-    score += news_score
+    s += news
 
-    return round(score, 2)
+    return round(s,2)
 
-# ================= TRADE PLAN =================
+# ================= TRADE =================
 def trade_plan(df):
     l = df.iloc[-1]
 
@@ -115,12 +109,15 @@ def trade_plan(df):
 
     return entry, sl, target
 
-# ================= MAIN ENGINE =================
-def generate_signals():
+# ================= MAIN =================
+run = st.button("▶ Scan Market")
+
+if run:
 
     results = []
+    sector_power = {}
 
-    for stock in ALL_STOCKS:
+    for stock, sector in ALL_STOCKS.items():
 
         st.write(f"📡 {stock}")
 
@@ -129,53 +126,52 @@ def generate_signals():
         if df is None or df.empty:
             continue
 
-        news = get_news_sentiment(stock)
-
-        score = sentiment_score(df, news)
-
-        if score < 6:
-            continue
+        news = news_sentiment(stock)
+        s = score(df, news)
 
         entry, sl, target = trade_plan(df)
-        price = round(df["Close"].iloc[-1], 2)
+        price = round(df["Close"].iloc[-1],2)
 
         results.append({
             "Stock": stock,
-            "Sentiment Score": score,
-            "News": news,
+            "Sector": sector,
+            "Score": s,
             "Price": price,
             "Entry": entry,
-            "Stop Loss": sl,
+            "SL": sl,
             "Target": target
         })
 
+        # Sector strength
+        sector_power[sector] = sector_power.get(sector, 0) + s
+
     df_out = pd.DataFrame(results)
 
-    if not df_out.empty:
-        df_out = df_out.sort_values("Sentiment Score", ascending=False).head(10)
+    # 🔥 ALWAYS SHOW TOP 10
+    df_top = df_out.sort_values("Score", ascending=False).head(10)
 
-    return df_out
+    # 🔥 TOP SECTORS
+    sector_df = pd.DataFrame(
+        list(sector_power.items()),
+        columns=["Sector","Strength"]
+    ).sort_values("Strength", ascending=False)
 
-# ================= UI =================
-run = st.button("▶ Generate Top 10 Trades")
+    # ================= DISPLAY =================
 
-if run:
+    st.subheader("🚀 TOP 10 STOCKS (SMART MONEY)")
+    st.dataframe(df_top, use_container_width=True)
 
-    df_signals = generate_signals()
+    st.subheader("🏭 SECTOR STRENGTH")
+    st.dataframe(sector_df, use_container_width=True)
 
-    if df_signals.empty:
-        st.warning("No strong sentiment today")
-    else:
-        st.subheader("🔥 TOP 10 MARKET SENTIMENT TRADES")
-        st.dataframe(df_signals, use_container_width=True)
+    st.success("✅ Market Scan Complete")
 
-        st.success("✅ Ready for Trading")
+    st.markdown("""
+    ### 📌 HOW TO TRADE
 
-        st.markdown("""
-        ### 📌 HOW TO TRADE
-
-        🟢 Enter only on breakout with volume  
-        🔴 Always use stop-loss  
-        🎯 Exit at target or same day  
-        ⚠️ Avoid overtrading (pick best 3–5)
-        """)
+    🟢 Focus on TOP 3 stocks from TOP sector  
+    🟢 Enter on breakout + volume  
+    🔴 Always use stop loss  
+    🎯 Target = 2x risk  
+    ⛔ Avoid weak sectors  
+    """)
