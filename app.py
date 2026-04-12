@@ -10,14 +10,7 @@ from textblob import TextBlob
 
 # ================= PAGE =================
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING DASHBOARD (STABLE PRO VERSION)")
-
-# ================= SIDEBAR =================
-st.sidebar.header("⚙️ Controls")
-
-scan_btn = st.sidebar.button("📊 Swing Scan")
-backtest_btn = st.sidebar.button("📈 Backtest")
-intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
+st.title("🚀 AI TRADING DASHBOARD (FINAL STABLE VERSION)")
 
 # ================= STOCK UNIVERSE =================
 ALL_STOCKS = {
@@ -29,11 +22,19 @@ ALL_STOCKS = {
     "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG"
 }
 
-# ================= DATA LOADER =================
+# ================= SIDEBAR (IMPORTANT ORDER FIX) =================
+st.sidebar.header("⚙️ Controls")
+
+scan_btn = st.sidebar.button("📊 Swing Scan")
+backtest_btn = st.sidebar.button("📈 Backtest")
+intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
+
+# ================= DATA =================
 @st.cache_data(ttl=300)
 def load_data(stock):
     try:
         df = yf.download(stock, period="6mo", progress=False)
+
         if df is None or df.empty:
             return None
 
@@ -50,22 +51,20 @@ def load_data(stock):
         df["ATR"] = atr.average_true_range()
 
         return df
-
     except:
         return None
 
-# ================= NEWS SENTIMENT =================
+# ================= NEWS =================
 def news_sentiment(stock):
     try:
         name = stock.replace(".NS","")
         url = f"https://news.google.com/rss/search?q={name}+stock"
         r = requests.get(url, timeout=5)
-        text = r.text[:1500]
-        return TextBlob(text).sentiment.polarity * 10
+        return TextBlob(r.text[:1500]).sentiment.polarity * 10
     except:
         return 0
 
-# ================= SWING SCORE =================
+# ================= SCORE =================
 def score(df, news):
     if df is None or len(df) < 50:
         return 0
@@ -92,19 +91,17 @@ def score(df, news):
 # ================= TRADE PLAN =================
 def trade_plan(df):
     l = df.iloc[-1]
-
     entry = round(l["Close"], 2)
     sl = round(entry - (1.5 * l["ATR"]), 2)
     target = round(entry + (entry - sl) * 2, 2)
-
     return entry, sl, target
 
 # ================= BACKTEST =================
 def backtest(df):
-    trades = []
-
     if df is None or len(df) < 100:
         return 0, 0
+
+    trades = []
 
     for i in range(50, len(df) - 5):
 
@@ -139,11 +136,11 @@ def backtest(df):
         return 0, 0
 
     wins = trades.count(1)
-    accuracy = (wins / len(trades)) * 100
+    acc = (wins / len(trades)) * 100
 
-    return len(trades), round(accuracy, 2)
+    return len(trades), round(acc, 2)
 
-# ================= INTRADAY (5 MIN ORB) =================
+# ================= INTRADAY DATA =================
 def load_intraday(stock):
     try:
         df = yf.download(stock, period="1d", interval="5m", progress=False)
@@ -152,7 +149,6 @@ def load_intraday(stock):
         return df
     except:
         return None
-
 
 def intraday_breakout(df):
     if df is None or len(df) < 20:
@@ -182,7 +178,9 @@ def intraday_breakout(df):
 
     return signal, round(entry,2), round(sl,2), round(target,2)
 
-# ================= MARKET SCAN =================
+# ================= MAIN UI =================
+
+# ================= SWING SCAN =================
 if scan_btn:
 
     results = []
@@ -194,9 +192,7 @@ if scan_btn:
         if df is None:
             continue
 
-        news = news_sentiment(stock)
-        s = score(df, news)
-
+        s = score(df, news_sentiment(stock))
         entry, sl, target = trade_plan(df)
 
         results.append({
@@ -213,7 +209,6 @@ if scan_btn:
     df_out = pd.DataFrame(results)
 
     if not df_out.empty:
-
         st.subheader("🔥 TOP 10 STOCKS")
         st.dataframe(df_out.sort_values("Score", ascending=False).head(10),
                      use_container_width=True)
@@ -252,7 +247,7 @@ if backtest_btn:
 # ================= INTRADAY =================
 if intraday_btn:
 
-    st.subheader("⚡ INTRADAY BREAKOUT (5 MIN ORB)")
+    st.subheader("⚡ INTRADAY 5-MIN BREAKOUT (ORB)")
 
     results = []
 
