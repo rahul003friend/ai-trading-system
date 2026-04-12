@@ -10,7 +10,7 @@ from textblob import TextBlob
 
 # ================= PAGE =================
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING DASHBOARD (STABLE FINAL BUILD)")
+st.title("🚀 AI TRADING DASHBOARD (FULL STABLE VERSION)")
 
 # ================= SIDEBAR =================
 st.sidebar.header("⚙️ Controls")
@@ -19,7 +19,7 @@ scan_btn = st.sidebar.button("📊 Swing Scan")
 backtest_btn = st.sidebar.button("📈 Backtest")
 intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
 
-# ================= STOCK UNIVERSE =================
+# ================= STOCK LIST =================
 ALL_STOCKS = {
     "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY",
     "SBIN.NS":"BANK","ICICIBANK.NS":"BANK","HDFCBANK.NS":"BANK",
@@ -40,6 +40,14 @@ def load_data(stock):
 
         df = df.copy()
 
+        for col in ["Open","High","Low","Close","Volume"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        df = df.dropna()
+
+        if len(df) < 50:
+            return None
+
         close = df["Close"]
 
         df["MA20"] = close.rolling(20).mean()
@@ -57,20 +65,19 @@ def load_data(stock):
     except:
         return None
 
-# ================= NEWS SENTIMENT =================
+# ================= NEWS =================
 def news_sentiment(stock):
     try:
         name = stock.replace(".NS","")
         url = f"https://news.google.com/rss/search?q={name}+stock"
         r = requests.get(url, timeout=5)
-        text = r.text[:1500]
-        return TextBlob(text).sentiment.polarity * 10
+        return TextBlob(r.text[:1500]).sentiment.polarity * 10
     except:
         return 0
 
-# ================= SWING SCORE =================
+# ================= SCORE =================
 def score(df, news):
-    if df is None or df.empty or len(df) < 50:
+    if df is None or len(df) < 50:
         return 0
 
     l = df.iloc[-1]
@@ -90,7 +97,6 @@ def score(df, news):
         s += 2
 
     s += news
-
     return round(s, 2)
 
 # ================= TRADE PLAN =================
@@ -121,9 +127,7 @@ def backtest(df):
 
             prev_high = sub["High"].rolling(5).max().iloc[-2]
 
-            entry_cond = float(l["Close"]) > float(prev_high)
-
-            if entry_cond:
+            if float(l["Close"]) > float(prev_high):
 
                 entry = float(l["Close"])
                 sl = entry - (1.5 * float(l["ATR"]))
@@ -155,9 +159,22 @@ def backtest(df):
 def load_intraday(stock):
     try:
         df = yf.download(stock, period="1d", interval="5m", progress=False)
+
         if df is None or df.empty:
             return None
-        return df.copy()
+
+        df = df.copy()
+
+        for col in ["Open","High","Low","Close","Volume"]:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        df = df.dropna()
+
+        if len(df) < 20:
+            return None
+
+        return df
+
     except:
         return None
 
@@ -169,12 +186,15 @@ def intraday_breakout(df):
 
     opening = df.iloc[:3]
 
-    high = float(opening["High"].max())
-    low = float(opening["Low"].min())
+    high = float(opening["High"].dropna().max())
+    low = float(opening["Low"].dropna().min())
 
     last = df.iloc[-1]
 
     close = float(last["Close"])
+
+    if pd.isna(high) or pd.isna(low) or pd.isna(close):
+        return None
 
     signal = "NO TRADE"
     entry = sl = target = 0
@@ -260,7 +280,7 @@ if backtest_btn:
 # ================= INTRADAY =================
 if intraday_btn:
 
-    st.subheader("⚡ INTRADAY 5-MIN BREAKOUT (ORB)")
+    st.subheader("⚡ INTRADAY 5-MIN ORB BREAKOUT")
 
     results = []
 
