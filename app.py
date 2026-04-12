@@ -89,10 +89,15 @@ def news_sentiment(stock):
 if df is None or len(df) < 50:
     return 0
 def calculate_score(df, stock):
+
+    # ✅ THIS MUST BE INSIDE FUNCTION
+    if df is None or len(df) < 50:
+        return 0
+
     s = 0
     l = df.iloc[-1]
 
-    # Trend alignment
+    # Trend
     if l["MA20"] > l["MA50"] > l["MA200"]:
         s += 3
 
@@ -101,30 +106,23 @@ def calculate_score(df, stock):
     if l["Close"] > 0.75 * high:
         s += 2
 
-    # RSI sweet spot
+    # RSI
     if 50 < l["RSI"] < 65:
         s += 1
 
-    # RSI rising
     if df["RSI"].iloc[-1] > df["RSI"].iloc[-5]:
         s += 1
 
-    # Volume contraction
+    # Volume
     avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
     if l["Volume"] < avg_vol:
         s += 1
 
-    # OBV rising
+    # OBV
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         s += 2
 
-    # News boost
-    sentiment = news_sentiment(stock)
-    if sentiment > 0:
-        s += 1
-
     return s
-
 
 # ================= UI =================
 
