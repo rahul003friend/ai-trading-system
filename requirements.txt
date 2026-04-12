@@ -3,5 +3,4 @@ pandas
 yfinance
 ta
 textblob
-matplotlib
 requests
