@@ -39,7 +39,32 @@ def send_alert(msg):
 
 
 @st.cache_data(ttl=300)
+@st.cache_data(ttl=300)
 def load_data(stock):
+    try:
+        df = yf.download(stock, period="6mo", progress=False)
+
+        # Handle empty data
+        if df.empty or "Close" not in df:
+            return None
+
+        close = df["Close"]
+
+        # Fix 2D issue
+        if isinstance(close, pd.DataFrame):
+            close = close.squeeze()
+
+        df["MA20"] = close.rolling(20).mean()
+        df["MA50"] = close.rolling(50).mean()
+        df["MA200"] = close.rolling(200).mean()
+
+        df["RSI"] = RSIIndicator(close).rsi()
+        df["OBV"] = OnBalanceVolumeIndicator(close, df["Volume"]).on_balance_volume()
+
+        return df
+
+    except:
+        return None
     df = yf.download(stock, period="6mo", progress=False)
 
     df["MA20"] = df["Close"].rolling(20).mean()
@@ -61,6 +86,8 @@ def news_sentiment(stock):
         return 0
 
 
+if df is None or len(df) < 50:
+    return 0
 def calculate_score(df, stock):
     s = 0
     l = df.iloc[-1]
@@ -110,6 +137,8 @@ if run or auto:
 
     for stock in STOCKS:
         df = load_data(stock)
+        if df is None or df.empty:
+    continue
         s = calculate_score(df, stock)
         price = round(df["Close"].iloc[-1], 2)
 
