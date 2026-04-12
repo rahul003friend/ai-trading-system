@@ -7,12 +7,13 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange
 
 st.set_page_config(layout="wide")
-st.title("🚀 PRO AI TRADING TERMINAL (ELITE VERSION)")
+st.title("🚀 AI TRADING TERMINAL — 9:30 AM SIGNAL ENGINE")
 
-# ================= STOCKS =================
+# ================= STOCK LIST =================
 ALL_STOCKS = [
     "RELIANCE.NS","SBIN.NS","ICICIBANK.NS",
-    "TATASTEEL.NS","INFY.NS","HDFCBANK.NS","LT.NS"
+    "TATASTEEL.NS","INFY.NS","HDFCBANK.NS",
+    "LT.NS","AXISBANK.NS","ITC.NS","ONGC.NS"
 ]
 
 # ================= DATA =================
@@ -38,41 +39,43 @@ def load_data(stock):
             df["RSI"] = RSIIndicator(close).rsi()
             df["OBV"] = OnBalanceVolumeIndicator(close, df["Volume"]).on_balance_volume()
 
-            # ATR for stop loss
             atr = AverageTrueRange(df["High"], df["Low"], close)
             df["ATR"] = atr.average_true_range()
 
             return df
+
         except:
             time.sleep(1)
 
     return None
 
-# ================= SIGNAL ENGINE =================
+# ================= LOGIC =================
+
+def calculate_score(df):
+    if df is None or len(df) < 50:
+        return 0
+
+    l = df.iloc[-1]
+    score = 0
+
+    if l["MA20"] > l["MA50"] > l["MA200"]:
+        score += 3
+
+    if 50 < l["RSI"] < 70:
+        score += 2
+
+    if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
+        score += 2
+
+    return score
+
 
 def breakout(df):
     try:
-        prev_high = df["High"].rolling(10).max().iloc[-2]
-        today = df.iloc[-1]
-        avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
-
-        return (today["Close"] > prev_high) and (today["Volume"] > avg_vol)
+        prev_high = df["High"].rolling(5).max().iloc[-2]
+        return df["Close"].iloc[-1] > prev_high
     except:
         return False
-
-
-def score(df):
-    l = df.iloc[-1]
-    s = 0
-
-    if l["MA20"] > l["MA50"] > l["MA200"]:
-        s += 3
-    if l["RSI"] > 50:
-        s += 2
-    if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
-        s += 2
-
-    return s
 
 
 def trade_plan(df):
@@ -80,80 +83,76 @@ def trade_plan(df):
 
     entry = round(l["Close"], 2)
 
-    # ATR stop loss
+    # ATR based SL
     sl = round(entry - (1.5 * l["ATR"]), 2)
 
     risk = entry - sl
-    target = round(entry + risk * 2, 2)
+    target = round(entry + (risk * 2), 2)
 
     return entry, sl, target
 
 
-def decision(score, breakout):
-    if breakout and score >= 6:
-        return "🔥 BUY NOW"
-    elif score >= 6:
-        return "⏳ READY"
-    else:
-        return "❌ AVOID"
-
-# ================= UI =================
-
-st.sidebar.header("⚙️ Controls")
-selected = st.sidebar.multiselect("Stocks", ALL_STOCKS, default=ALL_STOCKS)
-run = st.sidebar.button("▶ Run Scan")
-
-# ================= MAIN =================
-
-if run:
+def generate_signals():
 
     results = []
 
-    for stock in selected:
+    for stock in ALL_STOCKS:
 
         st.write(f"📡 Fetching {stock}")
 
         df = load_data(stock)
 
         if df is None or df.empty:
-            st.warning(f"❌ Failed {stock}")
             continue
 
-        s = score(df)
-        b = breakout(df)
-        entry, sl, target = trade_plan(df)
+        score = calculate_score(df)
 
+        if score < 6:
+            continue
+
+        b = breakout(df)
+
+        entry, sl, target = trade_plan(df)
         price = round(df["Close"].iloc[-1], 2)
-        dec = decision(s, b)
 
         results.append({
             "Stock": stock,
-            "Decision": dec,
             "Price": price,
-            "Score": s,
+            "Score": score,
+            "Breakout": b,
             "Entry": entry,
-            "SL": sl,
-            "Target": target,
-            "Breakout": b
+            "Stop Loss": sl,
+            "Target": target
         })
-
-        # 📊 CHART DISPLAY
-        st.subheader(f"📈 {stock}")
-        chart = df[["Close","MA20","MA50"]]
-        st.line_chart(chart)
 
     df_out = pd.DataFrame(results)
 
     if not df_out.empty:
-        df_out = df_out.sort_values("Score", ascending=False)
+        df_out = df_out.sort_values("Score", ascending=False).head(5)
 
-        st.subheader("🔥 TRADE SIGNALS")
-        st.dataframe(df_out, use_container_width=True)
+    return df_out
 
-        buys = df_out[df_out["Decision"] == "🔥 BUY NOW"]
+# ================= UI =================
 
-        st.subheader("🚀 IMMEDIATE BUYS")
-        st.dataframe(buys, use_container_width=True)
+run = st.button("▶ Generate 9:30 Signals")
 
+if run:
+
+    signals = generate_signals()
+
+    if signals.empty:
+        st.warning("❌ No strong trades today")
     else:
-        st.error("No data available")
+        st.subheader("🚀 TOP 5 TRADES (9:30 AM PLAN)")
+        st.dataframe(signals, use_container_width=True)
+
+        st.success("✅ Trade Setup Ready")
+
+        st.markdown("""
+        ### 📌 HOW TO TRADE
+
+        ✅ Buy only if price crosses Entry with volume  
+        🔴 Stop Loss is mandatory  
+        🎯 Exit at Target or same day close  
+        ⛔ Avoid if market is weak
+        """)
