@@ -3,17 +3,23 @@ import pandas as pd
 import yfinance as yf
 import time
 import requests
-import matplotlib.pyplot as plt
 
 from ta.momentum import RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange
 from textblob import TextBlob
 
+# ================= CONFIG =================
 st.set_page_config(layout="wide")
-st.title("🚀 PRO AI TRADING DASHBOARD")
+st.title("🚀 PRO AI TRADING TERMINAL")
 
-# ================= STOCKS =================
+# ================= SIDEBAR =================
+st.sidebar.header("⚙️ Controls")
+
+scan_btn = st.sidebar.button("📊 Scan Market")
+backtest_btn = st.sidebar.button("📈 Run Backtest")
+
+# ================= STOCK UNIVERSE =================
 ALL_STOCKS = {
     "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY",
     "SBIN.NS":"BANK","ICICIBANK.NS":"BANK","HDFCBANK.NS":"BANK",
@@ -124,97 +130,85 @@ def backtest(df):
     acc = (wins/len(trades))*100
     return len(trades), round(acc,2)
 
-# ================= TABS =================
-tab1, tab2, tab3 = st.tabs(["📊 Market Scan", "📈 Charts", "📊 Backtest"])
+# ================= LAYOUT =================
+col1, col2 = st.columns([2,1])
 
-# ================= TAB 1 =================
-with tab1:
+# ================= MARKET SCAN =================
+if scan_btn:
 
-    if st.button("▶ Run Market Scan"):
+    results = []
+    sector_power = {}
 
-        results = []
-        sector_power = {}
+    for stock, sector in ALL_STOCKS.items():
 
-        for stock, sector in ALL_STOCKS.items():
+        df = load_data(stock)
+        if df is None:
+            continue
 
-            df = load_data(stock)
-            if df is None:
-                continue
+        news = news_sentiment(stock)
+        s = score(df, news)
 
-            news = news_sentiment(stock)
-            s = score(df, news)
+        entry, sl, target = trade_plan(df)
 
-            entry, sl, target = trade_plan(df)
+        results.append({
+            "Stock": stock,
+            "Sector": sector,
+            "Score": s,
+            "Entry": entry,
+            "SL": sl,
+            "Target": target
+        })
 
-            results.append({
-                "Stock": stock,
-                "Sector": sector,
-                "Score": s,
-                "Entry": entry,
-                "SL": sl,
-                "Target": target
-            })
+        sector_power[sector] = sector_power.get(sector,0) + s
 
-            sector_power[sector] = sector_power.get(sector,0) + s
+    df_out = pd.DataFrame(results)
 
-        df_out = pd.DataFrame(results)
+    if not df_out.empty:
 
-        if not df_out.empty:
-            top = df_out.sort_values("Score", ascending=False).head(10)
+        top = df_out.sort_values("Score", ascending=False).head(10)
 
-            st.subheader("🔥 Top 10 Stocks")
+        with col1:
+            st.subheader("🔥 TOP TRADES")
             st.dataframe(top, use_container_width=True)
 
-            # Sector chart
-            st.subheader("🏭 Sector Strength")
+        with col2:
+            st.subheader("🏭 SECTOR FLOW")
             sec_df = pd.DataFrame(list(sector_power.items()), columns=["Sector","Strength"])
+            st.bar_chart(sec_df.set_index("Sector"))
 
-            fig, ax = plt.subplots()
-            ax.bar(sec_df["Sector"], sec_df["Strength"])
-            plt.xticks(rotation=45)
+# ================= CHART =================
+st.subheader("📈 Live Chart")
 
-            st.pyplot(fig)
+stock_sel = st.selectbox("Select Stock", list(ALL_STOCKS.keys()))
 
-# ================= TAB 2 =================
-with tab2:
+df = load_data(stock_sel)
 
-    stock_sel = st.selectbox("Select Stock", list(ALL_STOCKS.keys()))
+if df is not None:
+    st.line_chart(df[["Close","MA20","MA50"]])
 
-    df = load_data(stock_sel)
+# ================= BACKTEST =================
+if backtest_btn:
 
-    if df is not None:
-        st.line_chart(df[["Close","MA20","MA50"]])
+    st.subheader("📊 BACKTEST DASHBOARD")
 
-# ================= TAB 3 =================
-with tab3:
+    results = []
 
-    if st.button("📊 Run Backtest"):
+    for stock in ALL_STOCKS.keys():
 
-        results = []
+        df = load_data(stock)
+        if df is None:
+            continue
 
-        for stock in ALL_STOCKS.keys():
+        trades, acc = backtest(df)
 
-            df = load_data(stock)
-            if df is None:
-                continue
+        results.append({
+            "Stock": stock,
+            "Trades": trades,
+            "Accuracy %": acc
+        })
 
-            trades, acc = backtest(df)
+    df_bt = pd.DataFrame(results)
 
-            results.append({
-                "Stock": stock,
-                "Trades": trades,
-                "Accuracy %": acc
-            })
-
-        df_bt = pd.DataFrame(results)
-
-        if not df_bt.empty:
-
-            st.dataframe(df_bt)
-
-            # Accuracy chart
-            fig, ax = plt.subplots()
-            ax.bar(df_bt["Stock"], df_bt["Accuracy %"])
-            plt.xticks(rotation=45)
-
-            st.pyplot(fig)
+    if not df_bt.empty:
+        st.dataframe(df_bt, use_container_width=True)
+        st.bar_chart(df_bt.set_index("Stock"))
