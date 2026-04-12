@@ -10,7 +10,14 @@ from textblob import TextBlob
 
 # ================= PAGE =================
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING DASHBOARD (FINAL STABLE VERSION)")
+st.title("🚀 AI TRADING DASHBOARD (STABLE FINAL BUILD)")
+
+# ================= SIDEBAR =================
+st.sidebar.header("⚙️ Controls")
+
+scan_btn = st.sidebar.button("📊 Swing Scan")
+backtest_btn = st.sidebar.button("📈 Backtest")
+intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
 
 # ================= STOCK UNIVERSE =================
 ALL_STOCKS = {
@@ -22,14 +29,7 @@ ALL_STOCKS = {
     "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG"
 }
 
-# ================= SIDEBAR (IMPORTANT ORDER FIX) =================
-st.sidebar.header("⚙️ Controls")
-
-scan_btn = st.sidebar.button("📊 Swing Scan")
-backtest_btn = st.sidebar.button("📈 Backtest")
-intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
-
-# ================= DATA =================
+# ================= DATA LOADER =================
 @st.cache_data(ttl=300)
 def load_data(stock):
     try:
@@ -37,6 +37,8 @@ def load_data(stock):
 
         if df is None or df.empty:
             return None
+
+        df = df.copy()
 
         close = df["Close"]
 
@@ -51,22 +53,24 @@ def load_data(stock):
         df["ATR"] = atr.average_true_range()
 
         return df
+
     except:
         return None
 
-# ================= NEWS =================
+# ================= NEWS SENTIMENT =================
 def news_sentiment(stock):
     try:
         name = stock.replace(".NS","")
         url = f"https://news.google.com/rss/search?q={name}+stock"
         r = requests.get(url, timeout=5)
-        return TextBlob(r.text[:1500]).sentiment.polarity * 10
+        text = r.text[:1500]
+        return TextBlob(text).sentiment.polarity * 10
     except:
         return 0
 
-# ================= SCORE =================
+# ================= SWING SCORE =================
 def score(df, news):
-    if df is None or len(df) < 50:
+    if df is None or df.empty or len(df) < 50:
         return 0
 
     l = df.iloc[-1]
@@ -82,19 +86,24 @@ def score(df, news):
         s += 2
 
     prev_high = df["High"].rolling(5).max().iloc[-2]
-    if l["Close"] > prev_high:
+    if float(l["Close"]) > float(prev_high):
         s += 2
 
     s += news
+
     return round(s, 2)
 
 # ================= TRADE PLAN =================
 def trade_plan(df):
     l = df.iloc[-1]
-    entry = round(l["Close"], 2)
-    sl = round(entry - (1.5 * l["ATR"]), 2)
-    target = round(entry + (entry - sl) * 2, 2)
-    return entry, sl, target
+
+    entry = float(l["Close"])
+    atr = float(l["ATR"])
+
+    sl = entry - (1.5 * atr)
+    target = entry + (entry - sl) * 2
+
+    return round(entry,2), round(sl,2), round(target,2)
 
 # ================= BACKTEST =================
 def backtest(df):
@@ -112,10 +121,12 @@ def backtest(df):
 
             prev_high = sub["High"].rolling(5).max().iloc[-2]
 
-            if l["Close"] > prev_high:
+            entry_cond = float(l["Close"]) > float(prev_high)
 
-                entry = l["Close"]
-                sl = entry - (1.5 * l["ATR"])
+            if entry_cond:
+
+                entry = float(l["Close"])
+                sl = entry - (1.5 * float(l["ATR"]))
                 target = entry + (entry - sl) * 2
 
                 future = df.iloc[i:i+5]
@@ -123,10 +134,10 @@ def backtest(df):
                 result = 0
 
                 for _, r in future.iterrows():
-                    if r["Low"] <= sl:
+                    if float(r["Low"]) <= sl:
                         result = -1
                         break
-                    if r["High"] >= target:
+                    if float(r["High"]) >= target:
                         result = 1
                         break
 
@@ -146,39 +157,41 @@ def load_intraday(stock):
         df = yf.download(stock, period="1d", interval="5m", progress=False)
         if df is None or df.empty:
             return None
-        return df
+        return df.copy()
     except:
         return None
 
+# ================= INTRADAY ORB =================
 def intraday_breakout(df):
-    if df is None or len(df) < 20:
+
+    if df is None or df.empty or len(df) < 20:
         return None
 
     opening = df.iloc[:3]
 
-    high = opening["High"].max()
-    low = opening["Low"].min()
+    high = float(opening["High"].max())
+    low = float(opening["Low"].min())
 
     last = df.iloc[-1]
+
+    close = float(last["Close"])
 
     signal = "NO TRADE"
     entry = sl = target = 0
 
-    if last["Close"] > high:
+    if close > high:
         signal = "BUY"
-        entry = last["Close"]
+        entry = close
         sl = low
         target = entry + (entry - sl) * 1.5
 
-    elif last["Close"] < low:
+    elif close < low:
         signal = "SELL"
-        entry = last["Close"]
+        entry = close
         sl = high
         target = entry - (sl - entry) * 1.5
 
     return signal, round(entry,2), round(sl,2), round(target,2)
-
-# ================= MAIN UI =================
 
 # ================= SWING SCAN =================
 if scan_btn:
