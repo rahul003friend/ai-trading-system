@@ -3,59 +3,49 @@ import pandas as pd
 import yfinance as yf
 import time
 import requests
+import matplotlib.pyplot as plt
+
 from ta.momentum import RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange
 from textblob import TextBlob
 
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING TERMINAL — SMART MONEY TRACKER")
+st.title("🚀 PRO AI TRADING DASHBOARD")
 
-# ================= STOCK UNIVERSE =================
+# ================= STOCKS =================
 ALL_STOCKS = {
-    "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY","BPCL.NS":"ENERGY",
+    "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY",
     "SBIN.NS":"BANK","ICICIBANK.NS":"BANK","HDFCBANK.NS":"BANK",
-    "AXISBANK.NS":"BANK","KOTAKBANK.NS":"BANK",
-    "INFY.NS":"IT","TCS.NS":"IT","WIPRO.NS":"IT",
+    "INFY.NS":"IT","TCS.NS":"IT",
     "LT.NS":"INFRA","ULTRACEMCO.NS":"INFRA",
-    "TATASTEEL.NS":"METAL","HINDALCO.NS":"METAL","JSWSTEEL.NS":"METAL",
-    "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG",
-    "BHARTIARTL.NS":"TELECOM",
-    "ADANIENT.NS":"ADANI","ADANIPORTS.NS":"ADANI",
-    "POWERGRID.NS":"POWER","NTPC.NS":"POWER"
+    "TATASTEEL.NS":"METAL","HINDALCO.NS":"METAL",
+    "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG"
 }
 
 # ================= DATA =================
 @st.cache_data(ttl=300)
 def load_data(stock):
-    for _ in range(3):
-        try:
-            df = yf.download(stock, period="6mo", interval="1d", progress=False)
+    try:
+        df = yf.download(stock, period="6mo", progress=False)
+        if df.empty:
+            return None
 
-            if df is None or df.empty:
-                time.sleep(1)
-                continue
+        close = df["Close"]
 
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
+        df["MA20"] = close.rolling(20).mean()
+        df["MA50"] = close.rolling(50).mean()
+        df["MA200"] = close.rolling(200).mean()
 
-            close = df["Close"]
+        df["RSI"] = RSIIndicator(close).rsi()
+        df["OBV"] = OnBalanceVolumeIndicator(close, df["Volume"]).on_balance_volume()
 
-            df["MA20"] = close.rolling(20).mean()
-            df["MA50"] = close.rolling(50).mean()
-            df["MA200"] = close.rolling(200).mean()
+        atr = AverageTrueRange(df["High"], df["Low"], close)
+        df["ATR"] = atr.average_true_range()
 
-            df["RSI"] = RSIIndicator(close).rsi()
-            df["OBV"] = OnBalanceVolumeIndicator(close, df["Volume"]).on_balance_volume()
-
-            atr = AverageTrueRange(df["High"], df["Low"], close)
-            df["ATR"] = atr.average_true_range()
-
-            return df
-        except:
-            time.sleep(1)
-
-    return None
+        return df
+    except:
+        return None
 
 # ================= NEWS =================
 def news_sentiment(stock):
@@ -70,7 +60,6 @@ def news_sentiment(stock):
 
 # ================= SCORE =================
 def score(df, news):
-
     if df is None or len(df) < 50:
         return 0
 
@@ -79,13 +68,8 @@ def score(df, news):
 
     if l["MA20"] > l["MA50"] > l["MA200"]:
         s += 3
-
     if 50 < l["RSI"] < 70:
         s += 2
-
-    if df["RSI"].iloc[-1] > df["RSI"].iloc[-5]:
-        s += 1
-
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         s += 2
 
@@ -94,84 +78,143 @@ def score(df, news):
         s += 2
 
     s += news
-
     return round(s,2)
 
 # ================= TRADE =================
 def trade_plan(df):
     l = df.iloc[-1]
-
-    entry = round(l["Close"], 2)
-    sl = round(entry - (1.5 * l["ATR"]), 2)
-
-    risk = entry - sl
-    target = round(entry + risk * 2, 2)
-
+    entry = round(l["Close"],2)
+    sl = round(entry - (1.5 * l["ATR"]),2)
+    target = round(entry + (entry-sl)*2,2)
     return entry, sl, target
 
-# ================= MAIN =================
-run = st.button("▶ Scan Market")
+# ================= BACKTEST =================
+def backtest(df):
+    trades = []
 
-if run:
+    for i in range(50, len(df)-5):
+        sub = df.iloc[:i]
+        l = sub.iloc[-1]
 
-    results = []
-    sector_power = {}
+        if l["MA20"] > l["MA50"] > l["MA200"]:
+            prev_high = sub["High"].rolling(5).max().iloc[-2]
 
-    for stock, sector in ALL_STOCKS.items():
+            if l["Close"] > prev_high:
+                entry = l["Close"]
+                sl = entry - (1.5 * l["ATR"])
+                target = entry + (entry-sl)*2
 
-        st.write(f"📡 {stock}")
+                future = df.iloc[i:i+5]
+                result = 0
 
-        df = load_data(stock)
+                for _, r in future.iterrows():
+                    if r["Low"] <= sl:
+                        result = -1
+                        break
+                    if r["High"] >= target:
+                        result = 1
+                        break
 
-        if df is None or df.empty:
-            continue
+                trades.append(result)
 
-        news = news_sentiment(stock)
-        s = score(df, news)
+    if len(trades) == 0:
+        return 0,0
 
-        entry, sl, target = trade_plan(df)
-        price = round(df["Close"].iloc[-1],2)
+    wins = trades.count(1)
+    acc = (wins/len(trades))*100
+    return len(trades), round(acc,2)
 
-        results.append({
-            "Stock": stock,
-            "Sector": sector,
-            "Score": s,
-            "Price": price,
-            "Entry": entry,
-            "SL": sl,
-            "Target": target
-        })
+# ================= TABS =================
+tab1, tab2, tab3 = st.tabs(["📊 Market Scan", "📈 Charts", "📊 Backtest"])
 
-        # Sector strength
-        sector_power[sector] = sector_power.get(sector, 0) + s
+# ================= TAB 1 =================
+with tab1:
 
-    df_out = pd.DataFrame(results)
+    if st.button("▶ Run Market Scan"):
 
-    # 🔥 ALWAYS SHOW TOP 10
-    df_top = df_out.sort_values("Score", ascending=False).head(10)
+        results = []
+        sector_power = {}
 
-    # 🔥 TOP SECTORS
-    sector_df = pd.DataFrame(
-        list(sector_power.items()),
-        columns=["Sector","Strength"]
-    ).sort_values("Strength", ascending=False)
+        for stock, sector in ALL_STOCKS.items():
 
-    # ================= DISPLAY =================
+            df = load_data(stock)
+            if df is None:
+                continue
 
-    st.subheader("🚀 TOP 10 STOCKS (SMART MONEY)")
-    st.dataframe(df_top, use_container_width=True)
+            news = news_sentiment(stock)
+            s = score(df, news)
 
-    st.subheader("🏭 SECTOR STRENGTH")
-    st.dataframe(sector_df, use_container_width=True)
+            entry, sl, target = trade_plan(df)
 
-    st.success("✅ Market Scan Complete")
+            results.append({
+                "Stock": stock,
+                "Sector": sector,
+                "Score": s,
+                "Entry": entry,
+                "SL": sl,
+                "Target": target
+            })
 
-    st.markdown("""
-    ### 📌 HOW TO TRADE
+            sector_power[sector] = sector_power.get(sector,0) + s
 
-    🟢 Focus on TOP 3 stocks from TOP sector  
-    🟢 Enter on breakout + volume  
-    🔴 Always use stop loss  
-    🎯 Target = 2x risk  
-    ⛔ Avoid weak sectors  
-    """)
+        df_out = pd.DataFrame(results)
+
+        if not df_out.empty:
+            top = df_out.sort_values("Score", ascending=False).head(10)
+
+            st.subheader("🔥 Top 10 Stocks")
+            st.dataframe(top, use_container_width=True)
+
+            # Sector chart
+            st.subheader("🏭 Sector Strength")
+            sec_df = pd.DataFrame(list(sector_power.items()), columns=["Sector","Strength"])
+
+            fig, ax = plt.subplots()
+            ax.bar(sec_df["Sector"], sec_df["Strength"])
+            plt.xticks(rotation=45)
+
+            st.pyplot(fig)
+
+# ================= TAB 2 =================
+with tab2:
+
+    stock_sel = st.selectbox("Select Stock", list(ALL_STOCKS.keys()))
+
+    df = load_data(stock_sel)
+
+    if df is not None:
+        st.line_chart(df[["Close","MA20","MA50"]])
+
+# ================= TAB 3 =================
+with tab3:
+
+    if st.button("📊 Run Backtest"):
+
+        results = []
+
+        for stock in ALL_STOCKS.keys():
+
+            df = load_data(stock)
+            if df is None:
+                continue
+
+            trades, acc = backtest(df)
+
+            results.append({
+                "Stock": stock,
+                "Trades": trades,
+                "Accuracy %": acc
+            })
+
+        df_bt = pd.DataFrame(results)
+
+        if not df_bt.empty:
+
+            st.dataframe(df_bt)
+
+            # Accuracy chart
+            fig, ax = plt.subplots()
+            ax.bar(df_bt["Stock"], df_bt["Accuracy %"])
+            plt.xticks(rotation=45)
+
+            st.pyplot(fig)
