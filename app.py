@@ -8,18 +8,23 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange
 from textblob import TextBlob
 
+# ================= SAFE HELPER =================
+def safe_float(x):
+    try:
+        return float(x.item() if hasattr(x, "item") else x)
+    except:
+        return 0.0
+
 # ================= PAGE =================
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING DASHBOARD (FULL STABLE VERSION)")
+st.title("🚀 AI TRADING DASHBOARD (FINAL STABLE BUILD)")
 
 # ================= SIDEBAR =================
-st.sidebar.header("⚙️ Controls")
-
 scan_btn = st.sidebar.button("📊 Swing Scan")
 backtest_btn = st.sidebar.button("📈 Backtest")
 intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
 
-# ================= STOCK LIST =================
+# ================= STOCKS =================
 ALL_STOCKS = {
     "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY",
     "SBIN.NS":"BANK","ICICIBANK.NS":"BANK","HDFCBANK.NS":"BANK",
@@ -29,12 +34,11 @@ ALL_STOCKS = {
     "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG"
 }
 
-# ================= DATA LOADER =================
+# ================= DATA =================
 @st.cache_data(ttl=300)
 def load_data(stock):
     try:
         df = yf.download(stock, period="6mo", progress=False)
-
         if df is None or df.empty:
             return None
 
@@ -45,7 +49,7 @@ def load_data(stock):
 
         df = df.dropna()
 
-        if len(df) < 50:
+        if len(df) < 60:
             return None
 
         close = df["Close"]
@@ -77,34 +81,43 @@ def news_sentiment(stock):
 
 # ================= SCORE =================
 def score(df, news):
-    if df is None or len(df) < 50:
+    if df is None or len(df) < 60:
         return 0
 
     l = df.iloc[-1]
+
+    ma20 = safe_float(l["MA20"])
+    ma50 = safe_float(l["MA50"])
+    ma200 = safe_float(l["MA200"])
+    rsi = safe_float(l["RSI"])
+
     s = 0
 
-    if l["MA20"] > l["MA50"] > l["MA200"]:
+    if ma20 > ma50 > ma200:
         s += 3
 
-    if 50 < l["RSI"] < 70:
+    if 50 < rsi < 70:
         s += 2
 
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         s += 2
 
     prev_high = df["High"].rolling(5).max().iloc[-2]
-    if float(l["Close"]) > float(prev_high):
+    close = safe_float(l["Close"])
+
+    if close > safe_float(prev_high):
         s += 2
 
     s += news
+
     return round(s, 2)
 
 # ================= TRADE PLAN =================
 def trade_plan(df):
     l = df.iloc[-1]
 
-    entry = float(l["Close"])
-    atr = float(l["ATR"])
+    entry = safe_float(l["Close"])
+    atr = safe_float(l["ATR"])
 
     sl = entry - (1.5 * atr)
     target = entry + (entry - sl) * 2
@@ -123,14 +136,18 @@ def backtest(df):
         sub = df.iloc[:i]
         l = sub.iloc[-1]
 
-        if l["MA20"] > l["MA50"] > l["MA200"]:
+        ma20 = safe_float(l["MA20"])
+        ma50 = safe_float(l["MA50"])
+        ma200 = safe_float(l["MA200"])
+
+        if ma20 > ma50 > ma200:
 
             prev_high = sub["High"].rolling(5).max().iloc[-2]
 
-            if float(l["Close"]) > float(prev_high):
+            if safe_float(l["Close"]) > safe_float(prev_high):
 
-                entry = float(l["Close"])
-                sl = entry - (1.5 * float(l["ATR"]))
+                entry = safe_float(l["Close"])
+                sl = entry - (1.5 * safe_float(l["ATR"]))
                 target = entry + (entry - sl) * 2
 
                 future = df.iloc[i:i+5]
@@ -138,10 +155,10 @@ def backtest(df):
                 result = 0
 
                 for _, r in future.iterrows():
-                    if float(r["Low"]) <= sl:
+                    if safe_float(r["Low"]) <= sl:
                         result = -1
                         break
-                    if float(r["High"]) >= target:
+                    if safe_float(r["High"]) >= target:
                         result = 1
                         break
 
@@ -155,11 +172,10 @@ def backtest(df):
 
     return len(trades), round(acc, 2)
 
-# ================= INTRADAY DATA =================
+# ================= INTRADAY =================
 def load_intraday(stock):
     try:
         df = yf.download(stock, period="1d", interval="5m", progress=False)
-
         if df is None or df.empty:
             return None
 
@@ -168,33 +184,24 @@ def load_intraday(stock):
         for col in ["Open","High","Low","Close","Volume"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        df = df.dropna()
-
-        if len(df) < 20:
-            return None
-
-        return df
+        return df.dropna()
 
     except:
         return None
 
-# ================= INTRADAY ORB =================
+# ================= ORB =================
 def intraday_breakout(df):
 
-    if df is None or df.empty or len(df) < 20:
+    if df is None or len(df) < 20:
         return None
 
     opening = df.iloc[:3]
 
-    high = float(opening["High"].dropna().max())
-    low = float(opening["Low"].dropna().min())
+    high = safe_float(opening["High"].max())
+    low = safe_float(opening["Low"].min())
 
     last = df.iloc[-1]
-
-    close = float(last["Close"])
-
-    if pd.isna(high) or pd.isna(low) or pd.isna(close):
-        return None
+    close = safe_float(last["Close"])
 
     signal = "NO TRADE"
     entry = sl = target = 0
@@ -213,7 +220,7 @@ def intraday_breakout(df):
 
     return signal, round(entry,2), round(sl,2), round(target,2)
 
-# ================= SWING SCAN =================
+# ================= UI =================
 if scan_btn:
 
     results = []
@@ -250,7 +257,6 @@ if scan_btn:
         st.bar_chart(pd.DataFrame(list(sector_power.items()),
                                   columns=["Sector","Strength"]).set_index("Sector"))
 
-# ================= BACKTEST =================
 if backtest_btn:
 
     st.subheader("📊 BACKTEST RESULTS")
@@ -277,10 +283,9 @@ if backtest_btn:
         st.dataframe(df_bt, use_container_width=True)
         st.bar_chart(df_bt.set_index("Stock"))
 
-# ================= INTRADAY =================
 if intraday_btn:
 
-    st.subheader("⚡ INTRADAY 5-MIN ORB BREAKOUT")
+    st.subheader("⚡ INTRADAY ORB BREAKOUT")
 
     results = []
 
