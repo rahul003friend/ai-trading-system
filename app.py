@@ -138,7 +138,7 @@ if run or auto:
     for stock in STOCKS:
         df = load_data(stock)
         if df is None or df.empty:
-    continue
+                          continue
         s = calculate_score(df, stock)
         price = round(df["Close"].iloc[-1], 2)
 
