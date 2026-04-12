@@ -8,30 +8,39 @@ from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange
 from textblob import TextBlob
 
-# ================= SAFE HELPER =================
+# ================= SAFE CONVERTER =================
 def safe_float(x):
     try:
-        return float(x.item() if hasattr(x, "item") else x)
+        if isinstance(x, pd.Series):
+            x = x.dropna().iloc[-1] if len(x.dropna()) > 0 else 0
+        return float(x)
     except:
         return 0.0
 
 # ================= PAGE =================
 st.set_page_config(layout="wide")
-st.title("🚀 AI TRADING DASHBOARD (FINAL STABLE BUILD)")
+st.title("🚀 AI TRADING DASHBOARD (FINAL STABLE VERSION)")
 
-# ================= SIDEBAR =================
+# ================= BUTTONS =================
 scan_btn = st.sidebar.button("📊 Swing Scan")
 backtest_btn = st.sidebar.button("📈 Backtest")
-intraday_btn = st.sidebar.button("⚡ Intraday 5m Scanner")
+intraday_btn = st.sidebar.button("⚡ Intraday Scanner")
 
-# ================= STOCKS =================
-ALL_STOCKS = {
-    "RELIANCE.NS":"ENERGY","ONGC.NS":"ENERGY",
-    "SBIN.NS":"BANK","ICICIBANK.NS":"BANK","HDFCBANK.NS":"BANK",
-    "INFY.NS":"IT","TCS.NS":"IT",
-    "LT.NS":"INFRA","ULTRACEMCO.NS":"INFRA",
-    "TATASTEEL.NS":"METAL","HINDALCO.NS":"METAL",
-    "ITC.NS":"FMCG","HINDUNILVR.NS":"FMCG"
+# ================= STOCK LIST =================
+STOCKS = {
+    "RELIANCE.NS":"ENERGY",
+    "ONGC.NS":"ENERGY",
+    "SBIN.NS":"BANK",
+    "ICICIBANK.NS":"BANK",
+    "HDFCBANK.NS":"BANK",
+    "INFY.NS":"IT",
+    "TCS.NS":"IT",
+    "LT.NS":"INFRA",
+    "ULTRACEMCO.NS":"INFRA",
+    "TATASTEEL.NS":"METAL",
+    "HINDALCO.NS":"METAL",
+    "ITC.NS":"FMCG",
+    "HINDUNILVR.NS":"FMCG"
 }
 
 # ================= DATA =================
@@ -48,7 +57,6 @@ def load_data(stock):
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
         df = df.dropna()
-
         if len(df) < 60:
             return None
 
@@ -84,12 +92,11 @@ def score(df, news):
     if df is None or len(df) < 60:
         return 0
 
-    l = df.iloc[-1]
-
-    ma20 = safe_float(l["MA20"])
-    ma50 = safe_float(l["MA50"])
-    ma200 = safe_float(l["MA200"])
-    rsi = safe_float(l["RSI"])
+    close = safe_float(df["Close"].iloc[-1])
+    ma20 = safe_float(df["MA20"].iloc[-1])
+    ma50 = safe_float(df["MA50"].iloc[-1])
+    ma200 = safe_float(df["MA200"].iloc[-1])
+    rsi = safe_float(df["RSI"].iloc[-1])
 
     s = 0
 
@@ -102,10 +109,9 @@ def score(df, news):
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         s += 2
 
-    prev_high = df["High"].rolling(5).max().iloc[-2]
-    close = safe_float(l["Close"])
+    prev_high = safe_float(df["High"].rolling(5).max().iloc[-2])
 
-    if close > safe_float(prev_high):
+    if close > prev_high:
         s += 2
 
     s += news
@@ -114,10 +120,8 @@ def score(df, news):
 
 # ================= TRADE PLAN =================
 def trade_plan(df):
-    l = df.iloc[-1]
-
-    entry = safe_float(l["Close"])
-    atr = safe_float(l["ATR"])
+    entry = safe_float(df["Close"].iloc[-1])
+    atr = safe_float(df["ATR"].iloc[-1])
 
     sl = entry - (1.5 * atr)
     target = entry + (entry - sl) * 2
@@ -134,20 +138,22 @@ def backtest(df):
     for i in range(50, len(df) - 5):
 
         sub = df.iloc[:i]
-        l = sub.iloc[-1]
 
-        ma20 = safe_float(l["MA20"])
-        ma50 = safe_float(l["MA50"])
-        ma200 = safe_float(l["MA200"])
+        ma20 = safe_float(sub["MA20"].iloc[-1])
+        ma50 = safe_float(sub["MA50"].iloc[-1])
+        ma200 = safe_float(sub["MA200"].iloc[-1])
 
         if ma20 > ma50 > ma200:
 
-            prev_high = sub["High"].rolling(5).max().iloc[-2]
+            prev_high = safe_float(sub["High"].rolling(5).max().iloc[-2])
+            close = safe_float(sub["Close"].iloc[-1])
 
-            if safe_float(l["Close"]) > safe_float(prev_high):
+            if close > prev_high:
 
-                entry = safe_float(l["Close"])
-                sl = entry - (1.5 * safe_float(l["ATR"]))
+                entry = close
+                atr = safe_float(sub["ATR"].iloc[-1])
+
+                sl = entry - (1.5 * atr)
                 target = entry + (entry - sl) * 2
 
                 future = df.iloc[i:i+5]
@@ -191,7 +197,6 @@ def load_intraday(stock):
 
 # ================= ORB =================
 def intraday_breakout(df):
-
     if df is None or len(df) < 20:
         return None
 
@@ -200,10 +205,10 @@ def intraday_breakout(df):
     high = safe_float(opening["High"].max())
     low = safe_float(opening["Low"].min())
 
-    last = df.iloc[-1]
-    close = safe_float(last["Close"])
+    close = safe_float(df["Close"].iloc[-1])
 
     signal = "NO TRADE"
+
     entry = sl = target = 0
 
     if close > high:
@@ -226,7 +231,7 @@ if scan_btn:
     results = []
     sector_power = {}
 
-    for stock, sector in ALL_STOCKS.items():
+    for stock, sector in STOCKS.items():
 
         df = load_data(stock)
         if df is None:
@@ -263,7 +268,7 @@ if backtest_btn:
 
     results = []
 
-    for stock in ALL_STOCKS.keys():
+    for stock in STOCKS.keys():
 
         df = load_data(stock)
         if df is None:
@@ -285,11 +290,11 @@ if backtest_btn:
 
 if intraday_btn:
 
-    st.subheader("⚡ INTRADAY ORB BREAKOUT")
+    st.subheader("⚡ INTRADAY BREAKOUT SCANNER")
 
     results = []
 
-    for stock in ALL_STOCKS.keys():
+    for stock in STOCKS.keys():
 
         df = load_intraday(stock)
         if df is None:
