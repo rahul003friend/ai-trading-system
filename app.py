@@ -39,18 +39,15 @@ def send_alert(msg):
 
 
 @st.cache_data(ttl=300)
-@st.cache_data(ttl=300)
 def load_data(stock):
     try:
         df = yf.download(stock, period="6mo", progress=False)
 
-        # Handle empty data
         if df.empty or "Close" not in df:
             return None
 
         close = df["Close"]
 
-        # Fix 2D issue
         if isinstance(close, pd.DataFrame):
             close = close.squeeze()
 
@@ -65,16 +62,6 @@ def load_data(stock):
 
     except:
         return None
-    df = yf.download(stock, period="6mo", progress=False)
-
-    df["MA20"] = df["Close"].rolling(20).mean()
-    df["MA50"] = df["Close"].rolling(50).mean()
-    df["MA200"] = df["Close"].rolling(200).mean()
-
-    df["RSI"] = RSIIndicator(df["Close"]).rsi()
-    df["OBV"] = OnBalanceVolumeIndicator(df["Close"], df["Volume"]).on_balance_volume()
-
-    return df
 
 
 def news_sentiment(stock):
@@ -86,43 +73,36 @@ def news_sentiment(stock):
         return 0
 
 
-if df is None or len(df) < 50:
-    return 0
 def calculate_score(df, stock):
 
-    # ✅ THIS MUST BE INSIDE FUNCTION
     if df is None or len(df) < 50:
         return 0
 
     s = 0
     l = df.iloc[-1]
 
-    # Trend
     if l["MA20"] > l["MA50"] > l["MA200"]:
         s += 3
 
-    # Near high
     high = df["High"].rolling(252).max().iloc[-1]
     if l["Close"] > 0.75 * high:
         s += 2
 
-    # RSI
     if 50 < l["RSI"] < 65:
         s += 1
 
     if df["RSI"].iloc[-1] > df["RSI"].iloc[-5]:
         s += 1
 
-    # Volume
     avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
     if l["Volume"] < avg_vol:
         s += 1
 
-    # OBV
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         s += 2
 
     return s
+
 
 # ================= UI =================
 
@@ -135,8 +115,10 @@ if run or auto:
 
     for stock in STOCKS:
         df = load_data(stock)
+
         if df is None or df.empty:
-                          continue
+            continue
+
         s = calculate_score(df, stock)
         price = round(df["Close"].iloc[-1], 2)
 
