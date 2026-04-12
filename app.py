@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 import yfinance as yf
-import datetime
 import requests
+import time
 from ta.momentum import RSIIndicator
 from ta.volume import OnBalanceVolumeIndicator
-from textblob import TextBlob
 
 st.set_page_config(layout="wide")
 st.title("🚀 PRO AI TRADING TERMINAL")
@@ -25,12 +24,14 @@ SECTORS = {
     "INFY.NS": "IT"
 }
 
-TELEGRAM_TOKEN = "YOUR_TOKEN"
-CHAT_ID = "YOUR_CHAT_ID"
+TELEGRAM_TOKEN = ""
+CHAT_ID = ""
 
 # ================= FUNCTIONS =================
 
 def send_alert(msg):
+    if TELEGRAM_TOKEN == "" or CHAT_ID == "":
+        return
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
@@ -40,64 +41,62 @@ def send_alert(msg):
 
 @st.cache_data(ttl=300)
 def load_data(stock):
-    try:
-        df = yf.download(stock, period="6mo", progress=False)
+    for _ in range(2):  # retry twice
+        try:
+            df = yf.download(stock, period="6mo", progress=False)
 
-        if df.empty or "Close" not in df:
-            return None
+            if df is None or df.empty or "Close" not in df:
+                continue
 
-        close = df["Close"]
+            close = df["Close"]
 
-        if isinstance(close, pd.DataFrame):
-            close = close.squeeze()
+            if isinstance(close, pd.DataFrame):
+                close = close.squeeze()
 
-        df["MA20"] = close.rolling(20).mean()
-        df["MA50"] = close.rolling(50).mean()
-        df["MA200"] = close.rolling(200).mean()
+            df["MA20"] = close.rolling(20).mean()
+            df["MA50"] = close.rolling(50).mean()
+            df["MA200"] = close.rolling(200).mean()
 
-        df["RSI"] = RSIIndicator(close).rsi()
-        df["OBV"] = OnBalanceVolumeIndicator(close, df["Volume"]).on_balance_volume()
+            df["RSI"] = RSIIndicator(close).rsi()
+            df["OBV"] = OnBalanceVolumeIndicator(close, df["Volume"]).on_balance_volume()
 
-        return df
+            return df
 
-    except:
-        return None
+        except:
+            time.sleep(1)
 
-
-def news_sentiment(stock):
-    try:
-        text = stock.replace(".NS", "")
-        analysis = TextBlob(text)
-        return analysis.sentiment.polarity
-    except:
-        return 0
+    return None
 
 
-def calculate_score(df, stock):
-
+def calculate_score(df):
     if df is None or len(df) < 50:
         return 0
 
     s = 0
     l = df.iloc[-1]
 
+    # Trend
     if l["MA20"] > l["MA50"] > l["MA200"]:
         s += 3
 
+    # Near high
     high = df["High"].rolling(252).max().iloc[-1]
     if l["Close"] > 0.75 * high:
         s += 2
 
+    # RSI
     if 50 < l["RSI"] < 65:
         s += 1
 
     if df["RSI"].iloc[-1] > df["RSI"].iloc[-5]:
         s += 1
 
+    # Volume
     avg_vol = df["Volume"].rolling(20).mean().iloc[-1]
     if l["Volume"] < avg_vol:
         s += 1
 
+    # OBV
     if df["OBV"].iloc[-1] > df["OBV"].iloc[-10]:
         s += 2
 
@@ -110,43 +109,51 @@ run = st.button("▶ Run Scan")
 auto = st.checkbox("Auto Refresh (30s)")
 
 if run or auto:
+
     results = []
     sector_count = {}
 
     for stock in STOCKS:
+        st.write(f"Checking: {stock}")  # debug
+
         df = load_data(stock)
 
         if df is None or df.empty:
             continue
 
-        s = calculate_score(df, stock)
+        score = calculate_score(df)
         price = round(df["Close"].iloc[-1], 2)
 
         sector = SECTORS.get(stock, "OTHER")
-        sector_count[sector] = sector_count.get(sector, 0) + (1 if s >= 8 else 0)
+        if score >= 8:
+            sector_count[sector] = sector_count.get(sector, 0) + 1
 
-        if s >= 8:
-            msg = f"🔥 {stock} | ₹{price} | Score: {s}"
+        if score >= 8:
+            msg = f"🔥 {stock} | ₹{price} | Score: {score}"
             send_alert(msg)
 
         results.append({
             "Stock": stock,
             "Price": price,
-            "Score": s,
+            "Score": score,
             "Sector": sector
         })
 
-    df_out = pd.DataFrame(results).sort_values("Score", ascending=False)
+    df_out = pd.DataFrame(results)
 
-    st.subheader("📊 Scanner Results")
-    st.dataframe(df_out, use_container_width=True)
+    if df_out.empty:
+        st.error("⚠️ No data fetched. Try again.")
+    else:
+        df_out = df_out.sort_values("Score", ascending=False)
 
-    st.subheader("🏭 Sector Strength")
-    st.write(sector_count)
+        st.subheader("📊 Scanner Results")
+        st.dataframe(df_out, use_container_width=True)
 
-    st.success("Scan Completed")
+        st.subheader("🏭 Sector Strength")
+        st.write(sector_count)
+
+        st.success("Scan Completed")
 
     if auto:
-        import time
         time.sleep(30)
         st.rerun()
