@@ -3,14 +3,22 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 import requests
+from bs4 import BeautifulSoup
 from ta.momentum import RSIIndicator, StochasticOscillator
 from ta.volume import OnBalanceVolumeIndicator
 from ta.volatility import AverageTrueRange, BollingerBands
 from ta.trend import MACD, EMAIndicator
 from textblob import TextBlob
 from datetime import datetime, timedelta
+import feedparser
+import re
 import warnings
 warnings.filterwarnings("ignore")
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
 
 # ================= TOP 200 NSE STOCKS =================
 NSE_200 = [
@@ -134,21 +142,189 @@ def load_data(stock):
     except:
         return None
 
-# ================= MARKET SENTIMENT =================
+# ================= MULTI-SOURCE SENTIMENT ENGINE =================
+
+def _polarity(text):
+    """Return TextBlob polarity for a chunk of text."""
+    try:
+        return TextBlob(str(text)[:3000]).sentiment.polarity
+    except:
+        return 0.0
+
+
+def _fetch_dsc_india(ticker):
+    """
+    Scrape DSCIndia.com for news/announcements related to the stock.
+    Returns polarity score (-1 to +1).
+    """
+    try:
+        q = ticker.replace(".NS", "").replace("-", "").replace("&", "")
+        url = f"https://www.dscindia.com/search?q={q}"
+        r = requests.get(url, timeout=7, headers=HEADERS)
+        soup = BeautifulSoup(r.text, "html.parser")
+        texts = " ".join(t.get_text(" ", strip=True) for t in soup.find_all(["p", "h2", "h3", "li"])[:30])
+        return _polarity(texts)
+    except:
+        return 0.0
+
+
+def _fetch_nse_announcements(ticker):
+    """
+    Pull corporate announcements from NSE India corporate filings RSS/API.
+    Returns polarity score and list of announcement titles.
+    """
+    try:
+        symbol = ticker.replace(".NS", "").replace("-", "").replace("&", "")
+        url = (
+            f"https://www.nseindia.com/api/corp-info?symbol={symbol}"
+            f"&corpType=announcements&market=equities"
+        )
+        r = requests.get(url, timeout=7, headers={
+            **HEADERS,
+            "Referer": "https://www.nseindia.com/",
+            "Accept": "application/json",
+        })
+        data = r.json()
+        items = data.get("data", [])[:10]
+        titles = [item.get("subject", "") + " " + item.get("desc", "") for item in items]
+        combined = " ".join(titles)
+        polarity = _polarity(combined)
+
+        # Keyword boosting for corporate events
+        positive_kw = ["dividend", "bonus", "buyback", "profit", "record high",
+                       "expansion", "order win", "partnership", "acquisition"]
+        negative_kw = ["loss", "penalty", "litigation", "default", "downgrade",
+                       "fraud", "investigation", "delay", "shutdown"]
+        boost = sum(0.15 for kw in positive_kw if kw in combined.lower())
+        boost -= sum(0.15 for kw in negative_kw if kw in combined.lower())
+        polarity = max(-1.0, min(1.0, polarity + boost))
+        return polarity, titles[:5]
+    except:
+        return 0.0, []
+
+
+def _fetch_google_news(ticker):
+    """Google News RSS — broad market sentiment."""
+    try:
+        q = ticker.replace(".NS", "").replace("-", "").replace("&", "")
+        url = f"https://news.google.com/rss/search?q={q}+NSE+India+stock&hl=en-IN&gl=IN&ceid=IN:en"
+        feed = feedparser.parse(url)
+        texts = " ".join(
+            entry.get("title", "") + " " + entry.get("summary", "")
+            for entry in feed.entries[:15]
+        )
+        return _polarity(texts)
+    except:
+        return 0.0
+
+
+def _fetch_moneycontrol(ticker):
+    """MoneyControl news RSS for the stock."""
+    try:
+        q = ticker.replace(".NS", "").replace("-", "").replace("&", "").lower()
+        url = f"https://www.moneycontrol.com/rss/results.xml?search={q}"
+        feed = feedparser.parse(url)
+        texts = " ".join(
+            entry.get("title", "") + " " + entry.get("summary", "")
+            for entry in feed.entries[:10]
+        )
+        return _polarity(texts)
+    except:
+        return 0.0
+
+
+def _fetch_economic_times(ticker):
+    """Economic Times Markets RSS."""
+    try:
+        q = ticker.replace(".NS", "").replace("-", "")
+        url = f"https://economictimes.indiatimes.com/rssfeedsdefault.cms"
+        feed = feedparser.parse(url)
+        q_clean = q.lower()
+        texts = " ".join(
+            entry.get("title", "") + " " + entry.get("summary", "")
+            for entry in feed.entries
+            if q_clean in (entry.get("title", "") + entry.get("summary", "")).lower()
+        )
+        return _polarity(texts) if texts else 0.0
+    except:
+        return 0.0
+
+
+def _fetch_reddit_stockmarket(ticker):
+    """
+    Reddit r/IndiaInvestments and r/StockMarketIndia via public JSON.
+    No API key needed.
+    """
+    try:
+        symbol = ticker.replace(".NS", "").replace("-", "")
+        scores = []
+        for sub in ["IndiaInvestments", "StockMarketIndia", "IndianStreetBets"]:
+            url = f"https://www.reddit.com/r/{sub}/search.json?q={symbol}&sort=new&limit=10&restrict_sr=1"
+            r = requests.get(url, timeout=6, headers={**HEADERS, "Accept": "application/json"})
+            posts = r.json().get("data", {}).get("children", [])
+            texts = " ".join(
+                p["data"].get("title", "") + " " + p["data"].get("selftext", "")
+                for p in posts
+            )
+            if texts.strip():
+                scores.append(_polarity(texts))
+        return float(np.mean(scores)) if scores else 0.0
+    except:
+        return 0.0
+
 
 def get_sentiment(stock):
-    try:
-        q = stock.replace(".NS", "").replace("-", "")
-        url = f"https://news.google.com/rss/search?q={q}+NSE+stock+India&hl=en-IN"
-        r = requests.get(url, timeout=6)
-        blob = TextBlob(r.text[:3000])
-        polarity = blob.sentiment.polarity        # -1 to +1
-        subjectivity = blob.sentiment.subjectivity
-        score = round(polarity * 15, 2)           # scale to ±15
-        label = "🟢 Positive" if score > 2 else ("🔴 Negative" if score < -2 else "🟡 Neutral")
-        return score, label, round(polarity, 3), round(subjectivity, 3)
-    except:
-        return 0.0, "🟡 Neutral", 0.0, 0.0
+    """
+    Aggregate sentiment from 6 sources with weighted scoring.
+
+    Sources & weights:
+      NSE Corporate Announcements  → 35%  (official, highest signal)
+      DSC India                    → 20%  (Indian financial portal)
+      Economic Times               → 15%  (mainstream financial media)
+      MoneyControl                 → 15%  (retail investor media)
+      Google News                  → 10%  (broad coverage)
+      Reddit India                 →  5%  (social/retail sentiment)
+
+    Returns: composite_score (±15), label, breakdown dict
+    """
+    weights = {
+        "NSE Announcements": 0.35,
+        "DSC India":         0.20,
+        "Economic Times":    0.15,
+        "MoneyControl":      0.15,
+        "Google News":       0.10,
+        "Reddit":            0.05,
+    }
+
+    nse_pol, ann_titles = _fetch_nse_announcements(stock)
+    raw = {
+        "NSE Announcements": nse_pol,
+        "DSC India":         _fetch_dsc_india(stock),
+        "Economic Times":    _fetch_economic_times(stock),
+        "MoneyControl":      _fetch_moneycontrol(stock),
+        "Google News":       _fetch_google_news(stock),
+        "Reddit":            _fetch_reddit_stockmarket(stock),
+    }
+
+    composite = sum(raw[src] * weights[src] for src in weights)
+    composite_score = round(composite * 15, 2)   # scale to ±15
+
+    label = (
+        "🟢 Positive" if composite_score > 2
+        else "🔴 Negative" if composite_score < -2
+        else "🟡 Neutral"
+    )
+
+    breakdown = {
+        src: {
+            "polarity": round(raw[src], 3),
+            "weight":   f"{int(weights[src]*100)}%",
+            "signal":   "🟢" if raw[src] > 0.05 else ("🔴" if raw[src] < -0.05 else "🟡"),
+        }
+        for src in weights
+    }
+
+    return composite_score, label, round(composite, 3), breakdown, ann_titles
 
 # ================= NEXT-DAY PREDICTION ENGINE =================
 
@@ -527,7 +703,7 @@ with tab1:
             if df is None:
                 continue
             
-            ns, ns_label, polarity, _ = get_sentiment(stock)
+            ns, ns_label, polarity, sent_breakdown, ann_titles = get_sentiment(stock)
             direction, confidence, raw_score, _ = predict_next_day(df, ns)
             entry, sl, target, rr = trade_plan(df)
             
@@ -652,31 +828,51 @@ with tab4:
         
         with st.spinner(f"Analysing {ticker}..."):
             df = load_data(ticker)
-        
+
         if df is None:
             st.error(f"Could not fetch data for {ticker}. Check ticker symbol.")
         else:
-            ns, ns_label, polarity, subjectivity = get_sentiment(ticker)
+            ns, ns_label, polarity, sent_breakdown, ann_titles = get_sentiment(ticker)
             direction, confidence, raw_score, details = predict_next_day(df, ns)
             entry, sl, target, rr = trade_plan(df)
             total_bt, win_rate, expectancy = backtest(df)
-            
+
             # Summary row
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("📌 Ticker", ticker.replace(".NS", ""))
             col2.metric("🔮 Prediction", direction)
             col3.metric("💯 Confidence", f"{confidence}%")
             col4.metric("📰 Sentiment", ns_label)
-            
+
             st.divider()
-            
+
             # Trade plan
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Entry ₹", entry)
             col2.metric("Stop Loss ₹", sl)
             col3.metric("Target ₹", target)
             col4.metric("Risk:Reward", f"1:{rr}")
-            
+
+            st.divider()
+
+            # ---- SENTIMENT BREAKDOWN ----
+            st.markdown("#### 📰 Sentiment Breakdown by Source")
+            sent_rows = []
+            for src, info in sent_breakdown.items():
+                sent_rows.append({
+                    "Source": src,
+                    "Signal": info["signal"],
+                    "Polarity": info["polarity"],
+                    "Weight": info["weight"],
+                })
+            st.dataframe(pd.DataFrame(sent_rows), use_container_width=True, hide_index=True)
+
+            # Corporate announcements
+            if ann_titles:
+                st.markdown("#### 📢 Latest NSE Corporate Announcements")
+                for t in ann_titles:
+                    st.markdown(f"- {t}")
+
             st.divider()
             
             # Factor breakdown
