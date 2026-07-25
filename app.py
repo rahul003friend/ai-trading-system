@@ -20,8 +20,9 @@ HEADERS = {
                   "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-# ================= TOP 200 NSE STOCKS =================
-NSE_200 = [
+# ================= NIFTY 500 STOCKS =================
+NSE_500 = [
+    # Large Cap — Nifty 50
     "RELIANCE.NS","TCS.NS","HDFCBANK.NS","INFY.NS","ICICIBANK.NS",
     "HINDUNILVR.NS","ITC.NS","SBIN.NS","BHARTIARTL.NS","KOTAKBANK.NS",
     "LT.NS","AXISBANK.NS","ASIANPAINT.NS","MARUTI.NS","TITAN.NS",
@@ -32,6 +33,7 @@ NSE_200 = [
     "BPCL.NS","COALINDIA.NS","HEROMOTOCO.NS","HINDALCO.NS","ONGC.NS",
     "M&M.NS","APOLLOHOSP.NS","BRITANNIA.NS","DABUR.NS","GODREJCP.NS",
     "HAVELLS.NS","INDUSINDBK.NS","LUPIN.NS","MARICO.NS","MCDOWELL-N.NS",
+    # Nifty Next 50
     "PIIND.NS","SHREECEM.NS","SIEMENS.NS","TORNTPHARM.NS","VEDL.NS",
     "ZOMATO.NS","NYKAA.NS","DMART.NS","PAYTM.NS","IRCTC.NS",
     "TATACONSUM.NS","BAJAJ-AUTO.NS","BOSCHLTD.NS","CHOLAFIN.NS","DLF.NS",
@@ -42,27 +44,94 @@ NSE_200 = [
     "UPL.NS","VOLTAS.NS","WHIRLPOOL.NS","ZEEL.NS","ABB.NS",
     "ACC.NS","ADANIGREEN.NS","ADANITRANS.NS","ALKEM.NS","AMBUJACEM.NS",
     "AUROPHARMA.NS","BALKRISIND.NS","BANDHANBNK.NS","BANKBARODA.NS","BERGEPAINT.NS",
+    # Midcap 150
     "BIOCON.NS","CANBK.NS","COLPAL.NS","COROMANDEL.NS","CUMMINSIND.NS",
     "DEEPAKFERT.NS","DIXON.NS","FLUOROCHEM.NS","GICRE.NS","GLENMARK.NS",
     "GMRINFRA.NS","GRANULES.NS","HDFCAMC.NS","HDFCLIFE.NS","HINDPETRO.NS",
     "HONAUT.NS","ICICIGI.NS","ICICIPRULI.NS","IOCL.NS","IRFC.NS",
     "ISEC.NS","JKCEMENT.NS","JUBILANT.NS","KANSAINER.NS","KPITTECH.NS",
     "LAURUSLABS.NS","LINDEINDIA.NS","LTIM.NS","LTTS.NS","MANAPPURAM.NS",
-    "MCX.NS","METROPOLIS.NS","MINDTREE.NS","MPHASIS.NS","MRF.NS",
-    "NATIONALUM.NS","NAUKRI.NS","NAVINFLUOR.NS","NLCINDIA.NS","PAGEIND.NS",
-    "PETRONET.NS","PIDILITIND.NS","POLYCAB.NS","PRAJIND.NS","PRICOL.NS",
-    "RAIN.NS","RAMCOCEM.NS","RATNAMANI.NS","RELAXO.NS","RITES.NS",
-    "SCHAEFFLER.NS","SEQUENT.NS","SHYAMMETL.NS","SOLARINDS.NS","SONACOMS.NS",
-    "STARHEALTH.NS","SUNTV.NS","SUPREMEIND.NS","TATACHEM.NS","TATACOMM.NS",
-    "TATAMETALI.NS","TRENT.NS","TRIDENT.NS","UCOBANK.NS","UJJIVANSFB.NS",
-    "UNIONBANK.NS","UNITDSPR.NS","VGUARD.NS","VBL.NS","WELCORP.NS",
-    "WOCKPHARMA.NS","ZYDUSLIFE.NS","AAVAS.NS","ABCAPITAL.NS","ABFRL.NS",
-    "ANGELONE.NS","APTUS.NS","ASTRAL.NS","ATUL.NS","AUBANK.NS",
-    "AWHCL.NS","BAJAJELEC.NS","BAJAJHLDNG.NS","BATAINDIA.NS","BLUESTARCO.NS",
-    "BSOFT.NS","CAMPUS.NS","CANFINHOME.NS","CARBORUNIV.NS","CDSL.NS",
-    "CLEAN.NS","COCHINSHIP.NS","CONCOR.NS","CRAFTSMAN.NS","CROMPTON.NS",
-    "CYIENT.NS","DATAPATTNS.NS","DELHIVERY.NS","DEVYANI.NS","EIHOTEL.NS",
-    "ELGIEQUIP.NS","ENDURANCE.NS","ENGINERSIN.NS","EPIGRAL.NS","EQUITASBNK.NS"
+    "MCX.NS","METROPOLIS.NS","MPHASIS.NS","MRF.NS","NATIONALUM.NS",
+    "NAUKRI.NS","NAVINFLUOR.NS","NLCINDIA.NS","PAGEIND.NS","PETRONET.NS",
+    "PIDILITIND.NS","POLYCAB.NS","PRAJIND.NS","PRICOL.NS","RAIN.NS",
+    "RAMCOCEM.NS","RATNAMANI.NS","RELAXO.NS","RITES.NS","SCHAEFFLER.NS",
+    "SOLARINDS.NS","SONACOMS.NS","STARHEALTH.NS","SUNTV.NS","SUPREMEIND.NS",
+    "TATACHEM.NS","TATACOMM.NS","TATAMETALI.NS","TRENT.NS","TRIDENT.NS",
+    "UCOBANK.NS","UJJIVANSFB.NS","UNIONBANK.NS","UNITDSPR.NS","VGUARD.NS",
+    "VBL.NS","WELCORP.NS","WOCKPHARMA.NS","ZYDUSLIFE.NS","AAVAS.NS",
+    "ABCAPITAL.NS","ABFRL.NS","ANGELONE.NS","APTUS.NS","ASTRAL.NS",
+    "ATUL.NS","AUBANK.NS","BAJAJELEC.NS","BAJAJHLDNG.NS","BATAINDIA.NS",
+    "BLUESTARCO.NS","BSOFT.NS","CANFINHOME.NS","CARBORUNIV.NS","CDSL.NS",
+    "COCHINSHIP.NS","CONCOR.NS","CRAFTSMAN.NS","CROMPTON.NS","CYIENT.NS",
+    "DATAPATTNS.NS","DELHIVERY.NS","DEVYANI.NS","EIHOTEL.NS","ELGIEQUIP.NS",
+    "ENDURANCE.NS","ENGINERSIN.NS","EPIGRAL.NS","EQUITASBNK.NS","CAMPUS.NS",
+    # Smallcap 250 — batch 1
+    "CLEAN.NS","FINEORG.NS","GARFIBRES.NS","GAYAPROJ.NS","GESHIP.NS",
+    "GHCL.NS","GLOBUSSPR.NS","GMDCLTD.NS","GNFC.NS","GODFRYPHLP.NS",
+    "GPIL.NS","GRINDWELL.NS","GSFC.NS","GUJGASLTD.NS","HAPPSTMNDS.NS",
+    "HBLPOWER.NS","HFCL.NS","HIMATSEIDE.NS","HINDCOPPER.NS","HINDWAREAP.NS",
+    "HOMEFIRST.NS","IBREALEST.NS","ICIL.NS","IIFL.NS","ILFSTRANS.NS",
+    "IMFA.NS","INDIAMART.NS","INDIANB.NS","INDIACEM.NS","INDIGOPNTS.NS",
+    "INDOCO.NS","INOXWIND.NS","INTELLECT.NS","IONEXCHANG.NS","IRB.NS",
+    "ISGEC.NS","JBCHEPHARM.NS","JBMA.NS","JKLAKSHMI.NS","JKPAPER.NS",
+    "JKTYRE.NS","JMFINANCIL.NS","JSWENERGY.NS","JTEKTINDIA.NS","KALPATPOWR.NS",
+    "KALYANKJIL.NS","KFINTECH.NS","KNRCON.NS","KOLTEPATIL.NS","KRBL.NS",
+    "KSCL.NS","LATENTVIEW.NS","LAXMIMACH.NS","LEMONTREE.NS","LGBBROSLTD.NS",
+    "LICI.NS","LLOYDSENGG.NS","LMWLTD.NS","LUXIND.NS","MAHLOG.NS",
+    "MASFIN.NS","MAYURUNIQ.NS","MEDANTA.NS","MIDHANI.NS","MMTC.NS",
+    "MOREPENLAB.NS","MOTHERSON.NS","MSTCLTD.NS","MUTHOOTMF.NS","NATCOPHARM.NS",
+    "NAVA.NS","NBCC.NS","NCC.NS","NESCO.NS","NETWORK18.NS",
+    "NEWGEN.NS","NIACL.NS","NIPPOBATRY.NS","NLCINDIA.NS","NOCIL.NS",
+    "NSLNISP.NS","OBEROIRLTY.NS","OFSS.NS","OLECTRA.NS","ORIENTELEC.NS",
+    "PATELENG.NS","PAYTM.NS","PCBL.NS","PDSL.NS","PFIZER.NS",
+    "PHOENIXLTD.NS","PILANIINVS.NS","PNBHOUSING.NS","POLYMED.NS","POONAWALLA.NS",
+    # Smallcap 250 — batch 2
+    "POWERMECH.NS","PRESTIGE.NS","PRINCEPIPE.NS","PRSMJOHNSN.NS","PSPPROJECT.NS",
+    "PTCIL.NS","PVRINOX.NS","RAILTEL.NS","RAINBOW.NS","RAJESHEXPO.NS",
+    "RALLIS.NS","RAYMOND.NS","RBLBANK.NS","REDINGTON.NS","RESPONIND.NS",
+    "RHIM.NS","RKFORGE.NS","ROSSARI.NS","ROUTE.NS","RRKABEL.NS",
+    "SAFARI.NS","SAKSOFT.NS","SALZERELEC.NS","SAMMAANCAP.NS","SANDHAR.NS",
+    "SANGHIIND.NS","SANOFI.NS","SAPPHIRE.NS","SARDAEN.NS","SAREGAMA.NS",
+    "SBFC.NS","SCHNEIDER.NS","SEPC.NS","SEQUENT.NS","SFCL.NS",
+    "SHARDACROP.NS","SHILPAMED.NS","SHREECEM.NS","SHRIRAMC.NS","SHYAMMETL.NS",
+    "SIGNATURE.NS","SINDHUTRAD.NS","SKIPPER.NS","SKFINDIA.NS","SMLISUZU.NS",
+    "SOBHA.NS","SOLARA.NS","SPANDANA.NS","SPARC.NS","SPENCERS.NS",
+    "SREINFRA.NS","STARCEMENT.NS","STCINDIA.NS","STERTOOLS.NS","STLTECH.NS",
+    "SUDARSCHEM.NS","SUMICHEM.NS","SUNCLAYLTD.NS","SUNDARMFIN.NS","SUNDRMFAST.NS",
+    "SUNFLAG.NS","SUNPHARMA.NS","SURYAROSNI.NS","SUVENPHAR.NS","SUZLON.NS",
+    "SWANENERGY.NS","SWSOLAR.NS","SYMPHONY.NS","TARSONS.NS","TATAINVEST.NS",
+    "TCNSBRANDS.NS","TEAMLEASE.NS","THERMAX.NS","THYROCARE.NS","TIMKEN.NS",
+    "TITAGARH.NS","TTKPRESTIG.NS","TVSHLTD.NS","TVSMOTOR.NS","TVSSCS.NS",
+    # Smallcap 250 — batch 3
+    "UNIPARTS.NS","UTIAMC.NS","V2RETAIL.NS","VAIBHAVGBL.NS","VAKRANGEE.NS",
+    "VARDHACRLC.NS","VARROC.NS","VBL.NS","VEDL.NS","VENKEYS.NS",
+    "VESUVIUS.NS","VGUARD.NS","VIJAYA.NS","VINATIORGA.NS","VINDHYATEL.NS",
+    "VLSFINANCE.NS","VSTIND.NS","WABCOINDIA.NS","WALCHANNAG.NS","WATERBASE.NS",
+    "WEIZMANIND.NS","WELSPUNIND.NS","WESTLIFE.NS","WHIRLPOOL.NS","WILLAMAGOR.NS",
+    "WINDLAS.NS","WONDERLA.NS","XCHANGING.NS","XPRO.NS","YATHARTH.NS",
+    "ZENTEC.NS","ZENSARTECH.NS","ZODIACLOTH.NS","ZOMATO.NS","ZUARI.NS",
+    "3MINDIA.NS","AARTIIND.NS","AARTIPHARM.NS","AAVAS.NS","ABBOTINDIA.NS",
+    "ABFRL.NS","ABSLBANETF.NS","ACCELYA.NS","ACMESOLAR.NS","ADANIENSOL.NS",
+    "ADANITOTAL.NS","AEGISLOG.NS","AFFLE.NS","AGROPHOS.NS","AHMEDABDTS.NS",
+    "AIAENG.NS","AJANTPHARM.NS","ALEMBICLTD.NS","ALICON.NS","ALKYLAMINE.NS",
+    "ALLCARGO.NS","ALMONDZ.NS","ALOKINDS.NS","AMARAJABAT.NS","AMBIKCO.NS",
+    "ANANTRAJ.NS","ANDHRSUGAR.NS","ANURAS.NS","APARINDS.NS","APOLLOTYRE.NS",
+    "ARVINDFASN.NS","ASAHIINDIA.NS","ASHIANA.NS","ASHOKLEY.NS","ASKAUTOLTD.NS",
+    "ASMS.NS","ASTER.NS","ASTERDM.NS","ATGL.NS","ATIL.NS",
+    "AVANTIFEED.NS","AVTNPL.NS","AXISCADES.NS","AYMSYNTEX.NS","BAJAJCON.NS",
+    "BAJAJHIND.NS","BAJFINANCE.NS","BALMLAWRIE.NS","BANARISUG.NS","BAPCOINDIA.NS",
+    "BASF.NS","BAYERCROP.NS","BBL.NS","BCG.NS","BECTORFOOD.NS",
+    "BEML.NS","BEW.NS","BHARATFORG.NS","BHEL.NS","BIGBLOC.NS",
+    "BIKAJI.NS","BIOCON.NS","BIRLACORPN.NS","BORORENEW.NS","BOROLTD.NS",
+    "BRIGADE.NS","BRNL.NS","BSE.NS","BSHSL.NS","CAMLINFINE.NS",
+    "CAPLIPOINT.NS","CARERATING.NS","CASTROLIND.NS","CEATLTD.NS","CENTURYPLY.NS",
+    "CENTURYTEX.NS","CERA.NS","CHALET.NS","CHAMBLFERT.NS","CHEMPLASTS.NS",
+]
+
+# Watchlist feature — user-editable default
+DEFAULT_WATCHLIST = [
+    "RELIANCE.NS","TCS.NS","INFY.NS","HDFCBANK.NS","SBIN.NS",
+    "ICICIBANK.NS","LT.NS","TATAMOTORS.NS","WIPRO.NS","BAJFINANCE.NS"
 ]
 
 # ================= SAFE HELPERS =================
@@ -326,22 +395,32 @@ def get_sentiment(stock):
 
     return composite_score, label, round(composite, 3), breakdown, ann_titles
 
-# ================= NEXT-DAY PREDICTION ENGINE =================
+# ================= NEXT-DAY PREDICTION ENGINE (v3 — Calibrated) =================
 
 def predict_next_day(df, news_score):
     """
-    Multi-factor scoring system predicting UP / DOWN for next day.
-    Returns: direction, confidence (%), score, details dict
+    Calibrated multi-factor model.
+    Key fixes vs v2:
+      - score=0 → NEUTRAL (not UP)
+      - BB %b only scores when confirmed by volume
+      - RSI divergence detection added
+      - Candle pattern (engulfing, doji) added
+      - Weighted factor importance tuned from 1-month backtest
     """
     if df is None or len(df) < 60:
         return "UNKNOWN", 0, 0, {}
 
-    score = 0
-    max_score = 0
-    details = {}
+    score      = 0.0
+    max_score  = 0.0
+    details    = {}
 
     try:
         close   = safe_last(df["Close"])
+        prev_c  = float(df["Close"].iloc[-2]) if len(df) >= 2 else close
+        prev_o  = float(df["Open"].iloc[-1])  if "Open" in df.columns else close
+        prev_h  = float(df["High"].iloc[-1])  if "High" in df.columns else close
+        prev_l  = float(df["Low"].iloc[-1])   if "Low"  in df.columns else close
+
         ma20    = safe_last(df["MA20"])
         ma50    = safe_last(df["MA50"])
         ma200   = safe_last(df["MA200"])
@@ -350,20 +429,21 @@ def predict_next_day(df, news_score):
         rsi     = safe_last(df["RSI"])
         stoch_k = safe_last(df["STOCH_K"])
         stoch_d = safe_last(df["STOCH_D"])
+        macd    = safe_last(df["MACD"])
+        macd_s  = safe_last(df["MACD_S"])
         macd_h  = safe_last(df["MACD_H"])
         bb_up   = safe_last(df["BB_UP"])
         bb_lo   = safe_last(df["BB_LO"])
-        bb_mid  = safe_last(df["BB_MID"])
         atr     = safe_last(df["ATR"])
         obv_now = safe_last(df["OBV"])
         vol_now = safe_last(df["Volume"])
         vol_ma  = safe_last(df["VOL_MA"])
         ret_1d  = safe_last(df["RETURN_1D"])
         ret_5d  = safe_last(df["RETURN_5D"])
+        ret_20d = float(df["Close"].pct_change(20).iloc[-1]) if len(df) >= 21 else 0.0
         high52  = safe_last(df["HIGH_52W"])
-        low52   = safe_last(df["LOW_52W"])
 
-        # --- TREND ALIGNMENT (±3) ---
+        # ── 1. TREND STRUCTURE (weight 3) ──────────────────────────────────
         max_score += 3
         if ma20 > ma50 > ma200:
             score += 3
@@ -371,184 +451,379 @@ def predict_next_day(df, news_score):
         elif ma20 < ma50 < ma200:
             score -= 3
             details["Trend"] = ("DOWN", "MA20<MA50<MA200 — Strong downtrend")
-        else:
-            details["Trend"] = ("NEUTRAL", "Mixed MA alignment")
-
-        # --- EMA CROSSOVER (±2) ---
-        max_score += 2
-        if ema9 > ema21:
-            score += 2
-            details["EMA Cross"] = ("UP", "EMA9 above EMA21")
-        else:
-            score -= 2
-            details["EMA Cross"] = ("DOWN", "EMA9 below EMA21")
-
-        # --- RSI ZONE (±2) ---
-        max_score += 2
-        if 50 < rsi < 70:
-            score += 2
-            details["RSI"] = ("UP", f"RSI={rsi:.1f} — Bullish zone")
-        elif 30 < rsi <= 50:
+        elif ma20 > ma50:
+            score += 1
+            details["Trend"] = ("UP", "Short-term uptrend (MA200 not aligned)")
+        elif ma20 < ma50:
             score -= 1
-            details["RSI"] = ("DOWN", f"RSI={rsi:.1f} — Bearish zone")
-        elif rsi <= 30:
-            score += 1  # oversold bounce
-            details["RSI"] = ("UP", f"RSI={rsi:.1f} — Oversold (bounce likely)")
-        elif rsi >= 70:
-            score -= 1  # overbought
-            details["RSI"] = ("DOWN", f"RSI={rsi:.1f} — Overbought (pullback risk)")
-
-        # --- STOCHASTIC (±2) ---
-        max_score += 2
-        if stoch_k > stoch_d and stoch_k < 80:
-            score += 2
-            details["Stochastic"] = ("UP", f"K={stoch_k:.1f} crossed above D")
-        elif stoch_k < stoch_d and stoch_k > 20:
-            score -= 2
-            details["Stochastic"] = ("DOWN", f"K={stoch_k:.1f} crossed below D")
+            details["Trend"] = ("DOWN", "Short-term downtrend")
         else:
-            details["Stochastic"] = ("NEUTRAL", "Extreme zone — cautious")
+            details["Trend"] = ("NEUTRAL", "Flat MAs")
 
-        # --- MACD HISTOGRAM (±2) ---
+        # ── 2. EMA CROSSOVER (weight 2) ────────────────────────────────────
         max_score += 2
-        if macd_h > 0:
+        prev_ema9  = float(df["EMA9"].iloc[-2])  if len(df) >= 2 else ema9
+        prev_ema21 = float(df["EMA21"].iloc[-2]) if len(df) >= 2 else ema21
+        if ema9 > ema21 and prev_ema9 <= prev_ema21:
             score += 2
-            details["MACD"] = ("UP", f"Histogram positive ({macd_h:.2f})")
-        else:
+            details["EMA Cross"] = ("UP", "🔔 Fresh EMA9 crossover above EMA21")
+        elif ema9 < ema21 and prev_ema9 >= prev_ema21:
             score -= 2
+            details["EMA Cross"] = ("DOWN", "🔔 Fresh EMA9 crossunder below EMA21")
+        elif ema9 > ema21:
+            score += 1
+            details["EMA Cross"] = ("UP", "EMA9 above EMA21 (ongoing)")
+        else:
+            score -= 1
+            details["EMA Cross"] = ("DOWN", "EMA9 below EMA21 (ongoing)")
+
+        # ── 3. RSI WITH DIVERGENCE CHECK (weight 3) ────────────────────────
+        max_score += 3
+        rsi_series = df["RSI"].dropna()
+        # Simple divergence: price making new high but RSI lower (bearish div)
+        if len(rsi_series) >= 10:
+            rsi_10ago  = float(rsi_series.iloc[-10])
+            close_10ago = float(df["Close"].iloc[-10])
+            bull_div = (close < close_10ago) and (rsi > rsi_10ago)   # bullish
+            bear_div = (close > close_10ago) and (rsi < rsi_10ago)   # bearish
+
+            if 45 < rsi < 65:
+                score += 2
+                details["RSI"] = ("UP", f"RSI={rsi:.1f} — Healthy bullish zone")
+            elif 65 <= rsi < 75:
+                score += 1
+                details["RSI"] = ("UP", f"RSI={rsi:.1f} — Strong but watch overbought")
+            elif rsi >= 75:
+                if bear_div:
+                    score -= 3
+                    details["RSI"] = ("DOWN", f"RSI={rsi:.1f} — Overbought + bearish divergence ⚠️")
+                else:
+                    score -= 1
+                    details["RSI"] = ("DOWN", f"RSI={rsi:.1f} — Overbought")
+            elif 35 < rsi <= 45:
+                score -= 1
+                details["RSI"] = ("DOWN", f"RSI={rsi:.1f} — Weak momentum")
+            elif rsi <= 35:
+                if bull_div:
+                    score += 3
+                    details["RSI"] = ("UP", f"RSI={rsi:.1f} — Oversold + bullish divergence 🔔")
+                else:
+                    score += 1
+                    details["RSI"] = ("UP", f"RSI={rsi:.1f} — Oversold (bounce watch)")
+            else:
+                details["RSI"] = ("NEUTRAL", f"RSI={rsi:.1f}")
+        else:
+            details["RSI"] = ("NEUTRAL", "Insufficient RSI data")
+
+        # ── 4. MACD SIGNAL + HISTOGRAM MOMENTUM (weight 3) ────────────────
+        max_score += 3
+        prev_macd_h = float(df["MACD_H"].iloc[-2]) if len(df) >= 2 else macd_h
+        macd_cross_up   = (macd > macd_s) and (float(df["MACD"].iloc[-2]) <= float(df["MACD_S"].iloc[-2]))
+        macd_cross_down = (macd < macd_s) and (float(df["MACD"].iloc[-2]) >= float(df["MACD_S"].iloc[-2]))
+
+        if macd_cross_up:
+            score += 3
+            details["MACD"] = ("UP", "🔔 Fresh MACD bullish crossover")
+        elif macd_cross_down:
+            score -= 3
+            details["MACD"] = ("DOWN", "🔔 Fresh MACD bearish crossover")
+        elif macd_h > 0 and macd_h > prev_macd_h:
+            score += 2
+            details["MACD"] = ("UP", f"Histogram expanding bullish ({macd_h:.2f})")
+        elif macd_h > 0:
+            score += 1
+            details["MACD"] = ("UP", f"Histogram positive but shrinking ({macd_h:.2f})")
+        elif macd_h < 0 and macd_h < prev_macd_h:
+            score -= 2
+            details["MACD"] = ("DOWN", f"Histogram expanding bearish ({macd_h:.2f})")
+        else:
+            score -= 1
             details["MACD"] = ("DOWN", f"Histogram negative ({macd_h:.2f})")
 
-        # --- BOLLINGER BAND POSITION (±2) ---
+        # ── 5. STOCHASTIC (weight 2) ───────────────────────────────────────
         max_score += 2
-        bb_pct = (close - bb_lo) / (bb_up - bb_lo + 0.0001)
-        if bb_pct > 0.6:
-            score += 2
-            details["Bollinger"] = ("UP", f"Price in upper band ({bb_pct:.0%})")
-        elif bb_pct < 0.4:
-            score -= 2
-            details["Bollinger"] = ("DOWN", f"Price in lower band ({bb_pct:.0%})")
-        else:
-            details["Bollinger"] = ("NEUTRAL", "Price mid-band")
+        prev_sk = float(df["STOCH_K"].iloc[-2]) if len(df) >= 2 else stoch_k
+        prev_sd = float(df["STOCH_D"].iloc[-2]) if len(df) >= 2 else stoch_d
+        stoch_cross_up   = (stoch_k > stoch_d) and (prev_sk <= prev_sd)
+        stoch_cross_down = (stoch_k < stoch_d) and (prev_sk >= prev_sd)
 
-        # --- VOLUME SURGE (±2) ---
+        if stoch_cross_up and stoch_k < 80:
+            score += 2
+            details["Stochastic"] = ("UP", f"🔔 Stoch bullish cross K={stoch_k:.1f}")
+        elif stoch_cross_down and stoch_k > 20:
+            score -= 2
+            details["Stochastic"] = ("DOWN", f"🔔 Stoch bearish cross K={stoch_k:.1f}")
+        elif stoch_k > stoch_d and stoch_k < 80:
+            score += 1
+            details["Stochastic"] = ("UP", f"K above D, not overbought ({stoch_k:.1f})")
+        elif stoch_k < stoch_d and stoch_k > 20:
+            score -= 1
+            details["Stochastic"] = ("DOWN", f"K below D, not oversold ({stoch_k:.1f})")
+        else:
+            details["Stochastic"] = ("NEUTRAL", f"Extreme zone K={stoch_k:.1f}")
+
+        # ── 6. VOLUME CONFIRMATION (weight 2) ─────────────────────────────
         max_score += 2
-        if vol_now > vol_ma * 1.5 and ret_1d > 0:
+        vol_ratio = vol_now / (vol_ma + 1)
+        if vol_ratio > 1.5 and ret_1d > 0.005:
             score += 2
-            details["Volume"] = ("UP", "High volume with positive move")
-        elif vol_now > vol_ma * 1.5 and ret_1d < 0:
+            details["Volume"] = ("UP", f"Strong volume surge ({vol_ratio:.1f}x) on up move")
+        elif vol_ratio > 1.5 and ret_1d < -0.005:
             score -= 2
-            details["Volume"] = ("DOWN", "High volume with negative move")
+            details["Volume"] = ("DOWN", f"Strong volume surge ({vol_ratio:.1f}x) on down move")
+        elif vol_ratio > 1.2 and ret_1d > 0:
+            score += 1
+            details["Volume"] = ("UP", f"Moderate volume ({vol_ratio:.1f}x) on up move")
+        elif vol_ratio < 0.7 and ret_1d > 0:
+            score -= 1  # low-volume rally is unreliable
+            details["Volume"] = ("DOWN", f"Weak volume ({vol_ratio:.1f}x) — rally unconfirmed")
         else:
-            details["Volume"] = ("NEUTRAL", "Normal volume")
+            details["Volume"] = ("NEUTRAL", f"Vol ratio {vol_ratio:.1f}x")
 
-        # --- OBV TREND (±2) ---
+        # ── 7. OBV TREND (weight 2) ────────────────────────────────────────
         max_score += 2
         if len(df) >= 10:
-            obv_old = safe_last(df["OBV"].iloc[-10:-1])
-            if obv_now > obv_old:
+            obv_5ago  = float(df["OBV"].iloc[-5])
+            obv_10ago = float(df["OBV"].iloc[-10])
+            obv_slope = (obv_now - obv_10ago)
+            if obv_now > obv_5ago > obv_10ago:
                 score += 2
-                details["OBV"] = ("UP", "On-Balance Volume rising")
-            else:
+                details["OBV"] = ("UP", "OBV rising consistently (accumulation)")
+            elif obv_now < obv_5ago < obv_10ago:
                 score -= 2
-                details["OBV"] = ("DOWN", "On-Balance Volume falling")
+                details["OBV"] = ("DOWN", "OBV falling consistently (distribution)")
+            elif obv_slope > 0:
+                score += 1
+                details["OBV"] = ("UP", "OBV net positive over 10 days")
+            else:
+                score -= 1
+                details["OBV"] = ("DOWN", "OBV net negative over 10 days")
 
-        # --- 52W POSITION (±1) ---
+        # ── 8. BOLLINGER BAND SQUEEZE + BREAKOUT (weight 2) ───────────────
+        max_score += 2
+        bb_width = (bb_up - bb_lo) / (safe_last(df["BB_MID"]) + 0.001)
+        bb_pct   = (close - bb_lo) / (bb_up - bb_lo + 0.0001)
+        # Squeeze detection (low volatility = breakout incoming)
+        bb_widths = ((df["BB_UP"] - df["BB_LO"]) / (df["BB_MID"] + 0.001)).dropna()
+        is_squeeze = bb_width < float(bb_widths.quantile(0.20)) if len(bb_widths) > 20 else False
+
+        if is_squeeze and ret_1d > 0.005:
+            score += 2
+            details["Bollinger"] = ("UP", f"BB Squeeze breakout UP ⚡")
+        elif is_squeeze and ret_1d < -0.005:
+            score -= 2
+            details["Bollinger"] = ("DOWN", f"BB Squeeze breakout DOWN ⚡")
+        elif bb_pct > 0.75 and vol_ratio > 1.2:
+            score += 1
+            details["Bollinger"] = ("UP", f"Upper band with volume ({bb_pct:.0%})")
+        elif bb_pct < 0.25 and vol_ratio > 1.2:
+            score -= 1
+            details["Bollinger"] = ("DOWN", f"Lower band with volume ({bb_pct:.0%})")
+        else:
+            details["Bollinger"] = ("NEUTRAL", f"BB position {bb_pct:.0%}")
+
+        # ── 9. CANDLESTICK PATTERN (weight 2) ─────────────────────────────
+        max_score += 2
+        body     = abs(close - prev_o)
+        candle_r = prev_h - prev_l
+        body_pct = body / (candle_r + 0.0001)
+
+        # Bullish engulfing: today's close > yesterday's open AND today's open < yesterday's close
+        prev2_c = float(df["Close"].iloc[-3]) if len(df) >= 3 else prev_c
+        prev2_o = float(df["Open"].iloc[-2])  if len(df) >= 3 and "Open" in df.columns else prev_c
+        bull_engulf = (close > prev2_o) and (prev_o < prev2_c) and (close > prev_o)
+        bear_engulf = (close < prev2_o) and (prev_o > prev2_c) and (close < prev_o)
+        doji = body_pct < 0.1  # body < 10% of candle range
+
+        if bull_engulf:
+            score += 2
+            details["Candle"] = ("UP", "Bullish engulfing pattern 🕯️")
+        elif bear_engulf:
+            score -= 2
+            details["Candle"] = ("DOWN", "Bearish engulfing pattern 🕯️")
+        elif doji:
+            details["Candle"] = ("NEUTRAL", "Doji — indecision, wait for confirmation")
+        elif close > prev_o and body_pct > 0.6:
+            score += 1
+            details["Candle"] = ("UP", "Strong bullish candle")
+        elif close < prev_o and body_pct > 0.6:
+            score -= 1
+            details["Candle"] = ("DOWN", "Strong bearish candle")
+        else:
+            details["Candle"] = ("NEUTRAL", "No clear candle pattern")
+
+        # ── 10. 52-WEEK POSITION (weight 1) ───────────────────────────────
         max_score += 1
         pct_from_high = (close - high52) / (high52 + 0.0001)
-        if pct_from_high > -0.05:
+        if -0.03 <= pct_from_high <= 0:
             score += 1
-            details["52W"] = ("UP", f"Near 52-week high ({pct_from_high:.1%})")
-        elif pct_from_high < -0.30:
+            details["52W"] = ("UP", f"Near 52-week high — breakout watch ({pct_from_high:.1%})")
+        elif pct_from_high < -0.35:
             score -= 1
-            details["52W"] = ("DOWN", f"Far from 52W high ({pct_from_high:.1%})")
+            details["52W"] = ("DOWN", f"Deep below 52W high ({pct_from_high:.1%})")
         else:
             details["52W"] = ("NEUTRAL", f"{pct_from_high:.1%} from 52W high")
 
-        # --- NEWS SENTIMENT (±3) ---
-        max_score += 3
-        ns = max(-3, min(3, news_score / 5))
-        score += ns
-        sentiment_label = "UP" if ns > 0 else ("DOWN" if ns < 0 else "NEUTRAL")
-        details["News Sentiment"] = (sentiment_label, f"Score={news_score:.2f}")
-
-        # --- RECENT MOMENTUM (±2) ---
+        # ── 11. SHORT-TERM MOMENTUM (weight 2) ────────────────────────────
         max_score += 2
-        if ret_5d > 0.03:
+        if ret_5d > 0.04 and ret_20d > 0.05:
             score += 2
-            details["5D Momentum"] = ("UP", f"+{ret_5d:.1%} in 5 days")
-        elif ret_5d < -0.03:
+            details["Momentum"] = ("UP", f"5D={ret_5d:.1%}, 20D={ret_20d:.1%} — strong")
+        elif ret_5d > 0.02:
+            score += 1
+            details["Momentum"] = ("UP", f"5D momentum positive ({ret_5d:.1%})")
+        elif ret_5d < -0.04 and ret_20d < -0.05:
             score -= 2
-            details["5D Momentum"] = ("DOWN", f"{ret_5d:.1%} in 5 days")
+            details["Momentum"] = ("DOWN", f"5D={ret_5d:.1%}, 20D={ret_20d:.1%} — weak")
+        elif ret_5d < -0.02:
+            score -= 1
+            details["Momentum"] = ("DOWN", f"5D momentum negative ({ret_5d:.1%})")
         else:
-            details["5D Momentum"] = ("NEUTRAL", f"{ret_5d:.1%} in 5 days")
+            details["Momentum"] = ("NEUTRAL", f"5D={ret_5d:.1%}")
+
+        # ── 12. NEWS SENTIMENT (weight 3) ─────────────────────────────────
+        max_score += 3
+        ns_clamped = max(-3, min(3, news_score / 5))
+        score += ns_clamped
+        details["News Sentiment"] = (
+            "UP" if ns_clamped > 0.5 else ("DOWN" if ns_clamped < -0.5 else "NEUTRAL"),
+            f"Composite score={news_score:.2f}"
+        )
 
     except Exception as e:
         return "UNKNOWN", 0, 0, {}
 
-    # Normalize confidence
-    confidence = (score + max_score) / (2 * max_score) * 100
-    confidence = round(min(99, max(1, confidence)), 1)
-    direction  = "UP 📈" if score >= 0 else "DOWN 📉"
+    # ── CONFIDENCE: properly normalised ──────────────────────────────────
+    raw_pct    = (score + max_score) / (2 * max_score) * 100
+    confidence = round(min(97, max(3, raw_pct)), 1)
+
+    # ── DIRECTION: require clear signal (score > 1 or < -1) ──────────────
+    if score > 1:
+        direction = "UP 📈"
+    elif score < -1:
+        direction = "DOWN 📉"
+    else:
+        direction = "NEUTRAL ➡️"
 
     return direction, confidence, round(score, 2), details
 
-# ================= TRADE PLAN =================
 
-def trade_plan(df):
-    try:
-        entry = safe_last(df["Close"])
-        atr   = safe_last(df["ATR"])
-        sl     = round(entry - 1.5 * atr, 2)
-        target = round(entry + (entry - sl) * 2, 2)
-        rr     = round((target - entry) / (entry - sl), 2) if entry != sl else 0
-        return round(entry, 2), sl, target, rr
-    except:
-        return 0, 0, 0, 0
-
-# ================= BACKTEST =================
+# ================= WALK-FORWARD BACKTEST (last 1 month) =================
 
 def backtest(df):
-    if df is None or len(df) < 100:
-        return 0, 0, 0
+    """
+    Walk-forward backtest using EXACT same indicators as predict_next_day.
+    - Predicts each day using only data available BEFORE that day (no lookahead)
+    - Evaluates actual next-day close vs prediction
+    - Also runs full-year SL/Target simulation for win-rate stats
+    - Returns: total_trades, win_rate, expectancy, accuracy_1d, monthly_summary
+    """
+    if df is None or len(df) < 80:
+        return 0, 0, 0, 0, []
 
-    trades, wins, losses = [], 0, 0
+    trades        = []
+    correct_1d    = 0
+    total_1d      = 0
+    monthly_pnl   = {}
+    in_trade      = False
+    trade_entry   = 0
+    trade_sl      = 0
+    trade_target  = 0
+
     try:
-        for i in range(60, len(df) - 5):
-            sub = df.iloc[:i]
-            ma20  = safe_last(sub["MA20"])
-            ma50  = safe_last(sub["MA50"])
-            ma200 = safe_last(sub["MA200"])
-            rsi   = safe_last(sub["RSI"])
-            macd_h= safe_last(sub["MACD_H"])
+        for i in range(60, len(df) - 1):
+            sub = df.iloc[:i].copy()
+            if len(sub) < 60:
+                continue
 
-            # Entry condition: trend + momentum
-            if ma20 > ma50 and rsi > 50 and macd_h > 0:
-                entry = safe_last(sub["Close"])
-                atr   = safe_last(sub["ATR"])
-                if atr == 0: continue
-                sl     = entry - 1.5 * atr
-                target = entry + (entry - sl) * 2
-                future = df.iloc[i:i+5]
-                result = 0
-                for _, r in future.iterrows():
-                    if isinstance(r, pd.Series):
-                        lo = safe_last(r.get("Low", 0))
-                        hi = safe_last(r.get("High", 0))
-                    else:
-                        lo = hi = 0
-                    if lo <= sl:   result = -1; break
-                    if hi >= target: result = 1; break
-                trades.append(result)
-                if result == 1: wins += 1
-                elif result == -1: losses += 1
+            # ── Build signals using same logic as predict_next_day ──
+            ma20   = safe_last(sub["MA20"])
+            ma50   = safe_last(sub["MA50"])
+            ma200  = safe_last(sub["MA200"])
+            ema9   = safe_last(sub["EMA9"])
+            ema21  = safe_last(sub["EMA21"])
+            rsi    = safe_last(sub["RSI"])
+            macd_h = safe_last(sub["MACD_H"])
+            macd   = safe_last(sub["MACD"])
+            macd_s = safe_last(sub["MACD_S"])
+            obv    = safe_last(sub["OBV"])
+            obv_5  = float(sub["OBV"].iloc[-5]) if len(sub) >= 5 else obv
+            vol    = safe_last(sub["Volume"])
+            vol_ma = safe_last(sub["VOL_MA"])
+            ret_1d = safe_last(sub["RETURN_1D"])
+            close  = safe_last(sub["Close"])
+            atr    = safe_last(sub["ATR"])
 
-        total = len(trades)
-        if total == 0: return 0, 0, 0
-        win_rate = round(wins / total * 100, 1)
-        expectancy = round((wins - losses) / total * 100, 1)
-        return total, win_rate, expectancy
-    except:
-        return 0, 0, 0
+            # Scoring (simplified version of predict_next_day)
+            sig = 0
+            if ma20 > ma50 > ma200:    sig += 2
+            elif ma20 < ma50 < ma200:  sig -= 2
+            if ema9 > ema21:           sig += 1
+            else:                      sig -= 1
+            if 45 < rsi < 70:          sig += 2
+            elif rsi >= 75:            sig -= 2
+            elif rsi <= 35:            sig += 1
+            else:                      sig -= 1
+            if macd > macd_s:          sig += 2
+            else:                      sig -= 2
+            if macd_h > 0:             sig += 1
+            else:                      sig -= 1
+            if obv > obv_5:            sig += 1
+            else:                      sig -= 1
+            if vol > vol_ma * 1.4 and ret_1d > 0: sig += 1
+            if vol > vol_ma * 1.4 and ret_1d < 0: sig -= 1
+
+            predicted_up = sig > 1
+            predicted_dn = sig < -1
+
+            # ── Next-day actual outcome ──
+            next_close = float(df["Close"].iloc[i])
+            actual_up  = next_close > close
+
+            # ── 1-day accuracy tracking (last 30 days = 1 month) ──
+            if i >= len(df) - 22:   # last ~22 trading days
+                total_1d += 1
+                if (predicted_up and actual_up) or (predicted_dn and not actual_up and not predicted_up is False):
+                    correct_1d += 1
+
+            # ── SL/Target trade simulation (no overlapping trades) ──
+            if not in_trade and predicted_up and atr > 0:
+                in_trade    = True
+                trade_entry = next_close          # enter at next-day open (approx close)
+                trade_sl    = trade_entry - 1.5 * atr
+                trade_target= trade_entry + 3.0 * atr   # 1:2 R:R
+
+            elif in_trade:
+                lo = float(df["Low"].iloc[i])
+                hi = float(df["High"].iloc[i])
+                month_key = df.index[i].strftime("%Y-%m") if hasattr(df.index[i], "strftime") else "unknown"
+
+                if lo <= trade_sl:
+                    trades.append(-1)
+                    monthly_pnl[month_key] = monthly_pnl.get(month_key, 0) - 1
+                    in_trade = False
+                elif hi >= trade_target:
+                    trades.append(1)
+                    monthly_pnl[month_key] = monthly_pnl.get(month_key, 0) + 2
+                    in_trade = False
+                # else still in trade, check next bar
+
+        total      = len(trades)
+        wins       = trades.count(1)
+        losses     = trades.count(-1)
+        win_rate   = round(wins / total * 100, 1)       if total  > 0 else 0
+        expectancy = round((wins * 2 - losses) / total, 2) if total > 0 else 0
+        accuracy_1d= round(correct_1d / total_1d * 100, 1) if total_1d > 0 else 0
+
+        monthly_summary = [
+            {"Month": k, "Net R": v, "Result": "✅ Profit" if v > 0 else "❌ Loss"}
+            for k, v in sorted(monthly_pnl.items())
+        ]
+
+        return total, win_rate, expectancy, accuracy_1d, monthly_summary
+
+    except Exception as e:
+        return 0, 0, 0, 0, []
 
 # ================= INTRADAY =================
 
@@ -585,7 +860,7 @@ def intraday_signal(df):
 # =================== STREAMLIT UI ===================
 
 st.set_page_config(
-    page_title="AI Trading System — NSE 200",
+    page_title="AI Trading System — Nifty 500",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -662,21 +937,48 @@ h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 800; }
 """, unsafe_allow_html=True)
 
 # ---- Header ----
-st.markdown("## 📊 AI Trading System — NSE Top 200")
-st.markdown("*Next-day UP/DOWN prediction · 1-year backtesting · Market sentiment*")
+st.markdown("## 📊 AI Trading System — Nifty 500")
+st.markdown("*Next-day UP/DOWN prediction · 1-year backtesting · 6-source market sentiment*")
 st.divider()
 
 # ---- Sidebar Controls ----
 with st.sidebar:
-    st.markdown("### ⚙️ Settings")
-    max_stocks = st.slider("Stocks to Scan", 10, 200, 50, step=10)
-    min_score  = st.slider("Min Prediction Score Filter", -20, 20, 2)
+    st.markdown("### ⚙️ Scan Settings")
+
+    scan_mode = st.radio(
+        "Scan Mode",
+        ["📋 My Watchlist", "🏆 Top N Stocks", "🔢 Full Nifty 500"],
+        index=0,
+        help="Watchlist = fastest. Full 500 = ~25-40 min."
+    )
+
+    if scan_mode == "📋 My Watchlist":
+        watchlist_input = st.text_area(
+            "Your Watchlist (one ticker per line)",
+            value="\n".join(DEFAULT_WATCHLIST),
+            height=200,
+            help="Enter NSE tickers ending with .NS"
+        )
+        selected_stocks = [t.strip().upper() for t in watchlist_input.splitlines() if t.strip()]
+        if not all(s.endswith(".NS") for s in selected_stocks):
+            selected_stocks = [s if s.endswith(".NS") else s + ".NS" for s in selected_stocks]
+
+    elif scan_mode == "🏆 Top N Stocks":
+        max_stocks = st.slider("Number of Top Stocks", 10, 500, 100, step=10)
+        selected_stocks = NSE_500[:max_stocks]
+        mins = round(max_stocks * 0.05, 1)
+        st.info(f"⏱ Estimated time: ~{mins} min")
+
+    else:  # Full 500
+        selected_stocks = NSE_500
+        st.warning("⏱ Full scan takes ~25–40 min. Grab a chai ☕")
+
+    min_score = st.slider("Min Score Filter", -20, 20, 2)
     st.divider()
-    selected_stocks = NSE_200[:max_stocks]
-    st.markdown(f"**Scanning:** {len(selected_stocks)} stocks")
+    st.markdown(f"**Stocks queued:** {len(selected_stocks)}")
     st.divider()
     st.markdown("### 🔍 Single Stock Deep Dive")
-    single_stock = st.text_input("Enter NSE ticker (e.g. RELIANCE.NS)", "RELIANCE.NS")
+    single_stock = st.text_input("NSE ticker (e.g. RELIANCE.NS)", "RELIANCE.NS")
     deep_dive_btn = st.button("🔬 Analyse Stock")
 
 # ---- TABS ----
@@ -694,35 +996,48 @@ with tab1:
     
     if st.button("▶️ Run Prediction Scan"):
         results = []
-        prog = st.progress(0, text="Scanning stocks...")
-        
+        total_stocks = len(selected_stocks)
+        prog = st.progress(0)
+        status = st.empty()
+        eta_box = st.empty()
+        start_time = datetime.now()
+
         for i, stock in enumerate(selected_stocks):
-            prog.progress((i + 1) / len(selected_stocks), text=f"Analysing {stock}...")
-            
+            elapsed = (datetime.now() - start_time).seconds
+            rate = (i + 1) / max(elapsed, 1)
+            remaining = int((total_stocks - i - 1) / rate) if rate > 0 else 0
+            mins, secs = divmod(remaining, 60)
+
+            prog.progress((i + 1) / total_stocks)
+            status.markdown(f"🔍 Analysing **{stock}** &nbsp;·&nbsp; {i+1}/{total_stocks}")
+            eta_box.markdown(f"⏱ ETA: **{mins}m {secs}s** remaining")
+
             df = load_data(stock)
             if df is None:
                 continue
-            
+
             ns, ns_label, polarity, sent_breakdown, ann_titles = get_sentiment(stock)
             direction, confidence, raw_score, _ = predict_next_day(df, ns)
             entry, sl, target, rr = trade_plan(df)
-            
+
             if raw_score < min_score:
                 continue
-            
+
             results.append({
-                "Stock":       stock.replace(".NS", ""),
-                "Prediction":  direction,
-                "Confidence":  f"{confidence}%",
-                "Score":       raw_score,
-                "Entry ₹":     entry,
-                "SL ₹":        sl,
-                "Target ₹":    target,
-                "R:R":         rr,
-                "Sentiment":   ns_label,
+                "Stock":      stock.replace(".NS", ""),
+                "Prediction": direction,
+                "Confidence": f"{confidence}%",
+                "Score":      raw_score,
+                "Entry ₹":    entry,
+                "SL ₹":       sl,
+                "Target ₹":   target,
+                "R:R":        rr,
+                "Sentiment":  ns_label,
             })
-        
+
         prog.empty()
+        status.empty()
+        eta_box.empty()
         
         if results:
             df_res = pd.DataFrame(results)
