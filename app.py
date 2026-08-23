@@ -881,6 +881,242 @@ def intraday_signal(df):
     except:
         return None
 
+
+# ================================================================
+# v4 MODEL OVERRIDES - LEAKAGE CONTROLLED / CALIBRATED
+# These definitions intentionally replace the older score-based model.
+# ================================================================
+
+V4_FEATURES = [
+    "RETURN_1D", "RETURN_5D", "RSI", "MACD_H", "VOL_RATIO",
+    "ATR_PCT", "TREND20", "TREND50", "RANGE_PCT"
+]
+V4_MIN_TRAIN = 80
+V4_TRAIN_WINDOW = 180
+V4_MIN_EDGE = 0.004
+V4_COST_BUFFER = 0.0015
+V4_MIN_PROB = 0.58
+V4_MAX_TARGET = 0.03
+
+
+def _v4_row(df, i):
+    c = safe_last(df["Close"].iloc[i])
+    atr = safe_last(df["ATR"].iloc[i]) if "ATR" in df else 0.0
+    ma20 = safe_last(df["MA20"].iloc[i]) if "MA20" in df else c
+    ma50 = safe_last(df["MA50"].iloc[i]) if "MA50" in df else c
+    vals = [
+        safe_last(df["RETURN_1D"].iloc[i]),
+        safe_last(df["RETURN_5D"].iloc[i]),
+        safe_last(df["RSI"].iloc[i]),
+        safe_last(df["MACD_H"].iloc[i]),
+        (safe_last(df["Volume"].iloc[i]) / max(safe_last(df["VOL_MA"].iloc[i]), 1.0)) if "VOL_MA" in df else 1.0,
+        atr / c if c > 0 else 0.0,
+        (c / ma20 - 1.0) if ma20 > 0 else 0.0,
+        (c / ma50 - 1.0) if ma50 > 0 else 0.0,
+        ((safe_last(df["High"].iloc[i]) - safe_last(df["Low"].iloc[i])) / c) if c > 0 else 0.0,
+    ]
+    return np.asarray(vals, dtype=float)
+
+
+def _v4_ridge(X, y, alpha=8.0):
+    X1 = np.column_stack([np.ones(len(X)), X])
+    reg = np.eye(X1.shape[1]) * alpha
+    reg[0, 0] = 0.0
+    try:
+        return np.linalg.solve(X1.T @ X1 + reg, X1.T @ y)
+    except Exception:
+        return np.zeros(X1.shape[1])
+
+
+def _v4_fit(df, asof_idx):
+    """Fit only on observations strictly before asof_idx."""
+    start = max(30, asof_idx - V4_TRAIN_WINDOW)
+    X, y = [], []
+    for i in range(start, asof_idx - 1):
+        try:
+            x = _v4_row(df, i)
+            c0 = safe_last(df["Close"].iloc[i])
+            c1 = safe_last(df["Close"].iloc[i + 1])
+            target = c1 / c0 - 1.0 if c0 > 0 else np.nan
+            if np.all(np.isfinite(x)) and np.isfinite(target):
+                X.append(x)
+                y.append(target)
+        except Exception:
+            continue
+    if len(X) < V4_MIN_TRAIN:
+        return None
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    mu = np.nanmean(X, axis=0)
+    sd = np.nanstd(X, axis=0)
+    sd = np.where((sd <= 1e-12) | ~np.isfinite(sd), 1.0, sd)
+    Xz = np.nan_to_num((X - mu) / sd)
+    beta = _v4_ridge(Xz, y)
+    residual = y - np.column_stack([np.ones(len(Xz)), Xz]) @ beta
+    sigma = float(np.nanstd(residual))
+    if not np.isfinite(sigma) or sigma < 0.002:
+        sigma = 0.012
+    return beta, mu, sd, sigma
+
+
+def _v4_prediction(df, asof_idx=None):
+    if df is None or len(df) < 130:
+        return None
+    if asof_idx is None:
+        asof_idx = len(df) - 1
+    if asof_idx < V4_MIN_TRAIN + 2:
+        return None
+    fit = _v4_fit(df, asof_idx)
+    if fit is None:
+        return None
+    beta, mu, sd, sigma = fit
+    x = _v4_row(df, asof_idx)
+    if not np.all(np.isfinite(x)):
+        return None
+    xz = np.nan_to_num((x - mu) / sd)
+    expected = float(np.clip(np.array([1.0, *xz]) @ beta, -0.08, 0.08))
+    # Probability is tied to historical residual volatility, not score/maximum score.
+    z = expected / max(sigma, 0.004)
+    prob_up = float(0.5 * (1.0 + math.erf(z / np.sqrt(2.0))))
+    prob_up = float(np.clip(prob_up, 0.02, 0.98))
+    return expected, prob_up, sigma
+
+
+def predict_next_day(df, news_score=0.0):
+    """Leakage-controlled next-day prediction.
+
+    Price model is trained only on observations before the prediction date.
+    News is a small modifier; it cannot create a trade by itself.
+    """
+    try:
+        p = _v4_prediction(df)
+        if p is None:
+            return "UNKNOWN", 0.0, 0.0, {"Model": ("NEUTRAL", "Insufficient history for calibration")}
+        expected, prob, sigma = p
+
+        # News cannot dominate price evidence.  Also clamp its effect.
+        news_adj = float(np.clip(news_score, -1.0, 1.0)) * 0.0025
+        expected_adj = float(np.clip(expected + news_adj, -0.08, 0.08))
+        prob_adj = float(np.clip(prob + np.clip(news_score, -1, 1) * 0.035, 0.02, 0.98))
+
+        if expected_adj > V4_MIN_EDGE and prob_adj >= V4_MIN_PROB:
+            direction = "UP 📈"
+        elif expected_adj < -V4_MIN_EDGE and prob_adj <= 1.0 - V4_MIN_PROB:
+            direction = "DOWN 📉"
+        else:
+            direction = "NEUTRAL ➡️"
+
+        details = {
+            "Model": ("UP" if expected_adj > 0 else "DOWN" if expected_adj < 0 else "NEUTRAL",
+                      f"Walk-forward expected move {expected_adj*100:.2f}%"),
+            "Probability": ("UP" if prob_adj >= 0.5 else "DOWN",
+                            f"Calibrated probability {prob_adj*100:.1f}%"),
+            "Volatility": ("NEUTRAL", f"Historical next-day residual volatility {sigma*100:.2f}%"),
+            "News": ("UP" if news_adj > 0 else "DOWN" if news_adj < 0 else "NEUTRAL",
+                     f"News adjustment {news_adj*100:.2f}% (capped)"),
+            "Trade filter": ("UP" if direction.startswith("UP") else "DOWN" if direction.startswith("DOWN") else "NEUTRAL",
+                             "Trade only when expected edge and probability both pass thresholds"),
+        }
+        # raw_score is now the expected return in percentage points, not an arbitrary score.
+        return direction, round(prob_adj * 100.0, 1), round(expected_adj * 100.0, 2), details
+    except Exception:
+        return "UNKNOWN", 0.0, 0.0, {}
+
+
+def trade_plan(df, direction="UP 📈", expected_pct=0.0):
+    """Volatility-aware plan. 2-3% is a ceiling/target range, not a promise."""
+    try:
+        if df is None or df.empty:
+            return 0.0, 0.0, 0.0, 0.0
+        entry = safe_last(df["Close"])
+        atr = safe_last(df["ATR"]) if "ATR" in df.columns else 0.0
+        if entry <= 0 or atr <= 0:
+            return round(entry, 2), 0.0, 0.0, 0.0
+        risk = max(1.25 * atr, entry * 0.004)
+        risk_pct = risk / entry
+        # Target uses model edge when meaningful, but never forces 2-3%.
+        target_pct = min(V4_MAX_TARGET, max(0.006, abs(expected_pct) / 100.0))
+        target_distance = max(entry * target_pct, 1.5 * atr)
+        target_distance = min(target_distance, entry * V4_MAX_TARGET)
+        if direction.startswith("DOWN"):
+            sl = entry + risk
+            target = entry - target_distance
+        elif direction.startswith("UP"):
+            sl = entry - risk
+            target = entry + target_distance
+        else:
+            return round(entry, 2), 0.0, 0.0, 0.0
+        rr = abs(target-entry) / max(abs(entry-sl), 1e-9)
+        return round(entry, 2), round(sl, 2), round(target, 2), round(rr, 2)
+    except Exception:
+        return 0.0, 0.0, 0.0, 0.0
+
+
+def backtest(df):
+    """True walk-forward validation; return shape matches the existing dashboard."""
+    if df is None or len(df) < 150:
+        return 0, 0.0, 0.0, 0.0, []
+    trades = []
+    direction_hits = []
+    monthly = {}
+    for i in range(120, len(df) - 1):
+        try:
+            p = _v4_prediction(df, i)
+            if p is None:
+                continue
+            expected, prob, sigma = p
+            actual = safe_last(df["Close"].iloc[i+1]) / safe_last(df["Close"].iloc[i]) - 1.0
+            actual_up = actual > 0
+            predicted_up = expected > 0
+            direction_hits.append(int(actual_up == predicted_up))
+            direction = 1 if expected > V4_MIN_EDGE and prob >= V4_MIN_PROB else (-1 if expected < -V4_MIN_EDGE and prob <= 1-V4_MIN_PROB else 0)
+            if direction == 0:
+                continue
+            trade_return = actual * direction
+            trades.append(trade_return)
+            month = pd.Timestamp(df.index[i+1]).strftime("%Y-%m")
+            monthly[month] = monthly.get(month, 0.0) + trade_return
+        except Exception:
+            continue
+    if not trades:
+        accuracy = round(np.mean(direction_hits) * 100.0, 1) if direction_hits else 0.0
+        return 0, 0.0, 0.0, accuracy, []
+    arr = np.asarray(trades, dtype=float)
+    win_rate = float(np.mean(arr > V4_COST_BUFFER) * 100.0)
+    expectancy = float(np.mean(arr) * 100.0)
+    accuracy = round(np.mean(direction_hits) * 100.0, 1) if direction_hits else 0.0
+    monthly_summary = [{"Month": k, "Net %": round(v*100,2)} for k,v in sorted(monthly.items())]
+    return len(arr), round(win_rate,1), round(expectancy,2), accuracy, monthly_summary
+
+
+def audit_historical_date(df, date_text):
+    """Replay the model as it would have known the market at the supplied date."""
+    try:
+        target = pd.Timestamp(date_text).normalize()
+        dates = pd.to_datetime(df.index).normalize()
+        matches = np.where(dates <= target)[0]
+        if len(matches) == 0:
+            return None
+        i = int(matches[-1])
+        p = _v4_prediction(df, i)
+        if p is None or i >= len(df)-1:
+            return None
+        expected, prob, sigma = p
+        actual = safe_last(df["Close"].iloc[i+1]) / safe_last(df["Close"].iloc[i]) - 1.0
+        return {
+            "prediction_date": str(dates[i].date()),
+            "next_date": str(dates[i+1].date()),
+            "predicted_return_pct": round(expected*100,2),
+            "prob_up_pct": round(prob*100,1),
+            "actual_next_day_return_pct": round(actual*100,2),
+            "correct_direction": bool((expected >= 0 and actual >= 0) or (expected < 0 and actual < 0)),
+            "prediction_error_pct": round((expected-actual)*100,2),
+            "close_prediction_day": round(safe_last(df["Close"].iloc[i]),2),
+            "close_next_day": round(safe_last(df["Close"].iloc[i+1]),2),
+        }
+    except Exception:
+        return None
+
 # =================== STREAMLIT UI ===================
 
 st.set_page_config(
@@ -997,7 +1233,7 @@ with st.sidebar:
         selected_stocks = NSE_500
         st.warning("⏱ Full scan takes ~25–40 min. Grab a chai ☕")
 
-    min_score = st.slider("Min Score Filter", -20, 20, 2)
+    min_score = st.slider("Minimum expected next-day edge (%)", -3.0, 3.0, 0.4, 0.1)
     st.divider()
     st.markdown(f"**Stocks queued:** {len(selected_stocks)}")
     st.divider()
@@ -1042,7 +1278,7 @@ with tab1:
 
             ns, ns_label, polarity, sent_breakdown, ann_titles = get_sentiment(stock)
             direction, confidence, raw_score, _ = predict_next_day(df, ns)
-            entry, sl, target, rr = trade_plan(df)
+            entry, sl, target, rr = trade_plan(df, direction, raw_score)
 
             if raw_score < min_score:
                 continue
@@ -1173,7 +1409,7 @@ with tab4:
         else:
             ns, ns_label, polarity, sent_breakdown, ann_titles = get_sentiment(ticker)
             direction, confidence, raw_score, details = predict_next_day(df, ns)
-            entry, sl, target, rr = trade_plan(df)
+            entry, sl, target, rr = trade_plan(df, direction, raw_score)
             total_bt, win_rate, expectancy, accuracy_1d, monthly_summary = backtest(df)
 
             # Summary row
@@ -1233,7 +1469,16 @@ with tab4:
             col2.metric("Win Rate", f"{win_rate}%")
             col3.metric("Expectancy", f"{expectancy}%")
             
-            # Price chart
+            # Historical replay audit: e.g. 2026-08-17 for the Grasim incident
+        st.markdown("#### 🧪 Historical Replay Audit")
+        audit_date = st.date_input("Prediction date", value=datetime.now().date() - timedelta(days=7), key="audit_date")
+        audit = audit_historical_date(df, audit_date)
+        if audit:
+            st.dataframe(pd.DataFrame([audit]), use_container_width=True, hide_index=True)
+        else:
+            st.info("Not enough historical data to replay this date.")
+
+        # Price chart
             st.markdown("#### 📊 Price + MA Chart (Last 6 Months)")
             chart_df = df[["Close", "MA20", "MA50", "MA200"]].tail(180).dropna()
             st.line_chart(chart_df)
