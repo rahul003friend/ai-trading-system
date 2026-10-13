@@ -1,8 +1,19 @@
-streamlit
-pandas
-yfinance
-ta
-textblob
-requests
-feedparser
-beautifulsoup4
+# ============================================================
+#  AI Trading System — Nifty 500 (Order Block + SMC Edition)
+#  Install: pip install -r requirements.txt
+#  Run:     streamlit run app.py
+# ============================================================
+
+streamlit>=1.35.0
+pandas>=2.0.0
+numpy>=1.24.0
+yfinance>=0.2.40
+ta>=0.11.0
+textblob>=0.18.0
+feedparser>=6.0.11
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+
+# Post-install (run once):
+# python -m textblob.download_corpora
